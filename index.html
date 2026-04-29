@@ -133,6 +133,18 @@
         /* Bottom padding so canvas isn't hidden under controls */
         body { padding-bottom: 90px; }
 
+        #repo-link {
+            position: fixed;
+            bottom: 10px;
+            right: 12px;
+            z-index: 101;
+            font-size: 11px;
+            color: #444;
+            text-decoration: none;
+            font-family: monospace;
+        }
+        #repo-link:hover { color: #888; }
+
         #sav-modal-overlay {
             display: none;
             position: fixed;
@@ -211,6 +223,8 @@
     </style>
 </head>
 <body>
+
+<a id="repo-link" href="https://github.com/chopchump/babysteps_credits_map" target="_blank">source</a>
 
 <div id="viewer">
     <canvas id="path-canvas" width="2048" height="12288"></canvas>
