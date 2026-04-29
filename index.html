@@ -473,7 +473,7 @@ function animFrame(ts) {
 
     if (ptsToDraw > 0) {
         const end = Math.min(currentIdx + ptsToDraw, coords.length);
-        batchDraw(currentIdx, end);
+        batchDraw(currentIdx, Math.min(end + 1, coords.length)); // +1 draws dot at arrival point
         currentIdx = end;
     }
 
