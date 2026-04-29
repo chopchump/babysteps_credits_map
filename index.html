@@ -144,6 +144,11 @@
             font-family: monospace;
         }
         #repo-link:hover { color: #888; }
+        #cylinder-link {
+            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+            z-index: 101; font-size: 11px; color: #444; text-decoration: none; font-family: monospace;
+        }
+        #cylinder-link:hover { color: #888; }
 
         #sav-modal-overlay {
             display: none;
@@ -225,6 +230,7 @@
 <body>
 
 <a id="repo-link" href="https://github.com/chopchump/babysteps_credits_map" target="_blank">source</a>
+<a id="cylinder-link" href="cylinder.html">3D →</a>
 
 <div id="viewer">
     <canvas id="path-canvas" width="2048" height="12288"></canvas>

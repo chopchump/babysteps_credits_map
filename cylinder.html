@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Baby Steps - 3D Path</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #111; overflow: hidden; font-family: monospace; color: #ddd; }
+
+        #controls {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 100;
+            background: rgba(15,15,25,0.92);
+            border-top: 1px solid #333;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            backdrop-filter: blur(4px);
+        }
+
+        .btn {
+            background: #c4509a; color: #fff; border: none;
+            padding: 6px 18px; font-family: monospace; font-size: 14px;
+            font-weight: bold; cursor: pointer; border-radius: 3px;
+        }
+        .btn:hover:not(:disabled) { background: #e060b0; }
+        .btn:disabled { background: #333; color: #666; cursor: default; }
+
+        .group { display: flex; flex-direction: column; gap: 3px; }
+        .group label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.08em; }
+        input[type=range] { accent-color: #ff76c6; cursor: pointer; width: 100px; }
+
+        #status { font-size: 11px; color: #777; }
+
+        #back-link, #repo-link {
+            position: fixed; z-index: 101;
+            font-size: 11px; color: #444; text-decoration: none; font-family: monospace;
+        }
+        #back-link { top: 10px; left: 12px; }
+        #repo-link  { top: 10px; right: 12px; }
+        #back-link:hover, #repo-link:hover { color: #888; }
+    </style>
+</head>
+<body>
+
+<a id="back-link" href="index.html">← 2D</a>
+<a id="repo-link" href="https://github.com/chopchump/babysteps_credits_map" target="_blank">source</a>
+
+<div id="controls">
+    <button class="btn" id="playPauseBtn" disabled>▶ Play</button>
+    <button class="btn" id="replayBtn"    disabled>↺ Replay</button>
+
+    <div class="group">
+        <label>Speed: <span id="speedLabel">100× real-time</span></label>
+        <input type="range" id="speed-range" min="1" max="100" value="67">
+    </div>
+
+    <div id="status">Loading…</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// ── Coordinate constants (match 2D viewer exactly) ─────────────────────────
+const COEFF     = 1.3250;
+const X_PAD     = 150;
+const Y_PAD     = 180;
+const CANVAS_W  = 2048;
+const CANVAS_H  = 12288;
+
+// ── Cylinder dimensions ────────────────────────────────────────────────────
+const CYL_RADIUS = 5;
+// Height scaled so the map's natural proportions look right on the surface
+const CYL_HEIGHT = CYL_RADIUS * 2 * Math.PI * (CANVAS_H / CANVAS_W);
+
+// ── Speed ──────────────────────────────────────────────────────────────────
+const SECS_PER_POINT = 5.3;
+function sliderToSpeed(v) {
+    return Math.pow(1000, (v - 1) / 99) / SECS_PER_POINT;
+}
+function fmtMult(s) {
+    const x = s * SECS_PER_POINT;
+    return (x >= 10 ? Math.round(x) : x.toFixed(1)) + '×';
+}
+function fmtEta(s, rem) {
+    if (!rem || !s) return '';
+    const t = Math.round(rem / s);
+    return t < 60 ? `~${t}s` : t < 3600 ? `~${Math.round(t/60)}min` : `~${(t/3600).toFixed(1)}hr`;
+}
+
+// ── Normalise raw save coords → canvas coords ──────────────────────────────
+function normalize([rx, ry]) {
+    return [
+        (rx * 1.005 * COEFF / 25) + X_PAD,
+        ((CANVAS_H * 5 - ry * 0.983 * COEFF) / 5) + Y_PAD
+    ];
+}
+
+// ── Canvas coords → 3-D point on cylinder surface ─────────────────────────
+function canvasTo3D(cx, cy) {
+    const θ = (cx / CANVAS_W) * Math.PI * 2;
+    const h = (0.5 - cy / CANVAS_H) * CYL_HEIGHT;
+    return [Math.sin(θ) * CYL_RADIUS, h, Math.cos(θ) * CYL_RADIUS];
+}
+
+// ── Three.js scene ─────────────────────────────────────────────────────────
+const scene    = new THREE.Scene();
+scene.background = new THREE.Color(0x0e0e16);
+scene.fog      = new THREE.Fog(0x0e0e16, CYL_RADIUS * 12, CYL_RADIUS * 20);
+
+const camera   = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.01, 500);
+camera.position.set(0, 0, CYL_RADIUS * 2.8);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+document.body.insertBefore(renderer.domElement, document.getElementById('controls'));
+renderer.domElement.style.position = 'fixed';
+renderer.domElement.style.inset = '0';
+
+const orbit = new THREE.OrbitControls(camera, renderer.domElement);
+orbit.enableDamping  = true;
+orbit.dampingFactor  = 0.07;
+orbit.enablePan      = true;
+orbit.panSpeed       = 0.4;
+orbit.screenSpacePanning = false;
+orbit.minDistance    = CYL_RADIUS * 1.1;
+orbit.maxDistance    = CYL_RADIUS * 6;
+
+window.addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+});
+
+// ── Cylinder map background ────────────────────────────────────────────────
+new THREE.TextureLoader().load('map-base.jpg', tex => {
+    // Flip horizontally so east/west read correctly from outside
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.repeat.set(-1, 1);
+    tex.offset.set(1, 0);
+
+    const geo = new THREE.CylinderGeometry(CYL_RADIUS, CYL_RADIUS, CYL_HEIGHT, 128, 1, true);
+    scene.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+        map: tex, side: THREE.FrontSide
+    })));
+});
+
+// ── Top & bottom caps (dark discs to close the tube visually) ─────────────
+[CYL_HEIGHT / 2, -CYL_HEIGHT / 2].forEach(y => {
+    const cap = new THREE.Mesh(
+        new THREE.CircleGeometry(CYL_RADIUS, 128),
+        new THREE.MeshBasicMaterial({ color: 0x0e0e16, side: THREE.DoubleSide })
+    );
+    cap.rotation.x = Math.PI / 2;
+    cap.position.y = y;
+    scene.add(cap);
+});
+
+// ── Path state ─────────────────────────────────────────────────────────────
+let coords   = [];
+let pos3D    = null;   // Float32Array  (x,y,z) per point
+let dotMesh  = null;   // THREE.Points
+let indicator = null;  // THREE.Mesh sphere
+
+let currentIdx = 0;
+let animating  = false;
+let speed      = sliderToSpeed(67);
+let ptsAccum   = 0;
+let lastTs     = null;
+
+// ── Build / rebuild THREE.Points from parsed coords ────────────────────────
+function buildPath() {
+    const n = coords.length;
+    pos3D = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+        const [cx, cy] = normalize(coords[i]);
+        const [x, y, z] = canvasTo3D(cx, cy);
+        pos3D[i*3] = x; pos3D[i*3+1] = y; pos3D[i*3+2] = z;
+    }
+
+    if (dotMesh) scene.remove(dotMesh);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos3D, 3));
+    geo.setDrawRange(0, 0);
+
+    dotMesh = new THREE.Points(geo, new THREE.PointsMaterial({
+        color:         0x9b1206,
+        size:          0.055,
+        sizeAttenuation: true,
+        transparent:   true,
+        opacity:       0.9,
+        depthWrite:    false,
+    }));
+    scene.add(dotMesh);
+
+    // Indicator sphere
+    if (indicator) scene.remove(indicator);
+    indicator = new THREE.Mesh(
+        new THREE.SphereGeometry(0.11, 16, 10),
+        new THREE.MeshBasicMaterial({ color: 0x9b1206 })
+    );
+    scene.add(indicator);
+}
+
+function showDotsUpTo(idx) {
+    if (dotMesh) dotMesh.geometry.setDrawRange(0, Math.min(idx + 1, coords.length));
+}
+
+// Interpolated indicator position (handles cylinder wrap-around)
+function moveIndicator() {
+    if (!indicator || !pos3D || currentIdx <= 0) return;
+    const i0 = Math.min(currentIdx,     coords.length - 1);
+    const i1 = Math.min(currentIdx + 1, coords.length - 1);
+    const [cx0] = normalize(coords[i0]);
+    const [cx1] = normalize(coords[i1]);
+    const t = Math.abs(cx1 - cx0) > 1000 ? 0 : ptsAccum; // no lerp across seam
+    indicator.position.set(
+        pos3D[i0*3]   + (pos3D[i1*3]   - pos3D[i0*3])   * t,
+        pos3D[i0*3+1] + (pos3D[i1*3+1] - pos3D[i0*3+1]) * t,
+        pos3D[i0*3+2] + (pos3D[i1*3+2] - pos3D[i0*3+2]) * t
+    );
+}
+
+// ── Unified render loop ────────────────────────────────────────────────────
+function renderLoop(ts) {
+    requestAnimationFrame(renderLoop);
+
+    if (animating) {
+        if (lastTs === null) lastTs = ts;
+        const dt = Math.min(ts - lastTs, 100);
+        lastTs = ts;
+
+        ptsAccum += speed * dt / 1000;
+        const n = Math.floor(ptsAccum);
+        ptsAccum -= n;
+
+        if (n > 0) {
+            currentIdx = Math.min(currentIdx + n, coords.length);
+            showDotsUpTo(currentIdx);
+        }
+
+        if (currentIdx >= coords.length) {
+            animating = false;
+            playPauseBtn.textContent = '▶ Play';
+        }
+
+        moveIndicator();
+        updateUI();
+    }
+
+    orbit.update();
+    renderer.render(scene, camera);
+}
+requestAnimationFrame(renderLoop);
+
+// ── Playback controls ──────────────────────────────────────────────────────
+function play() {
+    if (currentIdx >= coords.length) currentIdx = 0;
+    animating = true; ptsAccum = 0; lastTs = null;
+    playPauseBtn.textContent = '⏸ Pause';
+}
+function pause() {
+    animating = false;
+    playPauseBtn.textContent = '▶ Play';
+}
+function replay() {
+    pause();
+    currentIdx = 0;
+    showDotsUpTo(0);
+    updateUI();
+    play();
+}
+
+// ── UI ─────────────────────────────────────────────────────────────────────
+const playPauseBtn = document.getElementById('playPauseBtn');
+const statusEl     = document.getElementById('status');
+
+function updateUI() {
+    const n = coords.length;
+    statusEl.textContent = !animating
+        ? (n === 0 ? 'Loading…' : currentIdx >= n ? 'Finished!' : currentIdx === 0
+            ? `${n.toLocaleString()} points. Press Play!` : 'Paused')
+        : `Playing… ${fmtMult(speed)} real-time · ${fmtEta(speed, n - currentIdx)} left`;
+}
+
+playPauseBtn.addEventListener('click', () => animating ? pause() : play());
+document.getElementById('replayBtn').addEventListener('click',
+    () => { if (coords.length) replay(); });
+document.getElementById('speed-range').addEventListener('input', function() {
+    speed = sliderToSpeed(+this.value);
+    document.getElementById('speedLabel').textContent = fmtMult(speed) + ' real-time';
+});
+
+// ── Load path0_0.sav ───────────────────────────────────────────────────────
+fetch('path0_0.sav')
+    .then(r => r.arrayBuffer())
+    .then(buf => {
+        const arr = new Uint8Array(buf);
+        for (let i = 0; i < arr.length; i += 4) {
+            if (arr[i] !== 0) {
+                let x = (arr[i+1] << 8) + arr[i];
+                if (x > 0x8000) x -= 0x8000;
+                coords.push([x, (arr[i+3] << 8) + arr[i+2]]);
+            }
+        }
+        buildPath();
+
+        // Pre-draw first 11600 points, play from there
+        const mid = Math.min(11600, coords.length - 1);
+        currentIdx = mid;
+        showDotsUpTo(mid);
+        moveIndicator();
+
+        playPauseBtn.disabled = false;
+        document.getElementById('replayBtn').disabled = false;
+        updateUI();
+        play();
+    })
+    .catch(() => { statusEl.textContent = 'Failed to load path file'; });
+</script>
+</body>
+</html>
