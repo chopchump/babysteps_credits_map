@@ -188,14 +188,9 @@ renderer.domElement.addEventListener('wheel', e => {
 
 // ── Cylinder map background ────────────────────────────────────────────────
 new THREE.TextureLoader().load('map-base.jpg', tex => {
-    // Flip horizontally so east/west read correctly from outside
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.repeat.set(-1, 1);
-    tex.offset.set(1, 0);
-
     const geo = new THREE.CylinderGeometry(CYL_RADIUS, CYL_RADIUS, CYL_HEIGHT, 128, 1, true);
     scene.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-        map: tex, side: THREE.BackSide
+        map: tex, side: THREE.FrontSide
     })));
 });
 
