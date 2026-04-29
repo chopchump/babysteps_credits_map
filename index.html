@@ -290,6 +290,14 @@ let layerStrength = 0.03;   // per-visit darkening on separate darkening canvas 
 
 // Each path point = ~5.3s of real gameplay (derived from a fresh save with known playtime)
 const SECS_PER_POINT = 5.3;
+function fmtEta(ptsPerSec, remaining) {
+    if (!isFinite(ptsPerSec) || ptsPerSec <= 0 || remaining <= 0) return '';
+    const secs = Math.round(remaining / ptsPerSec);
+    if (secs < 60)  return `~${secs}s`;
+    if (secs < 3600) return `~${Math.round(secs/60)}min`;
+    return `~${(secs/3600).toFixed(1)}hr`;
+}
+
 function fmtMultiplier(ptsPerSec) {
     const x = ptsPerSec * SECS_PER_POINT;
     return x >= 10 ? `${Math.round(x)}×` : `${x.toFixed(1)}×`;
@@ -551,7 +559,8 @@ function updateUI() {
             : currentIdx === 0 ? `${n.toLocaleString()} points loaded. Press Play!`
             : 'Paused';
     } else {
-        statusEl.textContent = `Playing... ${fmtMultiplier(speed)} real-time`;
+        const eta = fmtEta(speed, n - currentIdx);
+        statusEl.textContent = `Playing... ${fmtMultiplier(speed)} real-time${eta ? ' · ' + eta + ' left' : ''}`;
     }
 }
 
