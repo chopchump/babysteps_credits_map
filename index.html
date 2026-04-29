@@ -150,11 +150,6 @@
             <input type="file" id="pathInput" accept=".sav">
         </div>
 
-        <div class="group">
-            <label>Background image</label>
-            <input type="file" id="backgroundInput" accept="image/*">
-        </div>
-
         <button class="btn" id="playPauseBtn" disabled>▶ Play</button>
         <button class="btn" id="replayBtn" disabled>↺ Replay</button>
 
@@ -163,18 +158,8 @@
             <input type="range" id="speed-range" min="1" max="100" value="44">
         </div>
 
-        <div class="group">
-            <label>Dot opacity: <span id="alphaLabel">0.90</span></label>
-            <input type="range" id="alpha-range" min="0.05" max="1.00" step="0.01" value="0.90" style="width:90px">
-        </div>
-
-        <div class="group">
-            <label>Overlap darkening: <span id="layerLabel">0.03</span></label>
-            <input type="range" id="layer-range" min="0.00" max="0.10" step="0.005" value="0.03" style="width:90px">
-        </div>
-
         <label class="check-row">
-            <input type="checkbox" id="annotationsToggle" checked>
+            <input type="checkbox" id="annotationsToggle">
             Annotations
         </label>
 
@@ -183,7 +168,7 @@
             Auto-scroll
         </label>
 
-        <div id="status">Load a .sav file to begin</div>
+        <div id="status">Loading...</div>
     </div>
 
     <div id="row-progress">
@@ -239,7 +224,7 @@ const oCtx  = overlayCanvas.getContext('2d');
 
 // ── Background images ──────────────────────────────────────────────────────
 const bgImages = { base: null, markers: null };
-let showAnnotations = true;
+let showAnnotations = false;
 
 function loadBg(key, src) {
     const img = new Image();
@@ -468,48 +453,58 @@ function updateUI() {
     }
 }
 
-// ── File loading ───────────────────────────────────────────────────────────
+// ── SAV parsing + load helper ──────────────────────────────────────────────
+function parseSavBuffer(buffer) {
+    const arr = new Uint8Array(buffer);
+    const result = [];
+    for (let i = 0; i < arr.length; i += 4) {
+        if (arr[i] !== 0) {
+            let x = (arr[i+1] << 8) + arr[i];
+            if (x > 0x8000) x -= 0x8000;
+            const y = (arr[i+3] << 8) + arr[i+2];
+            result.push([x, y]);
+        }
+    }
+    return result;
+}
+
+function loadCoords(newCoords, startFromHalf = false) {
+    coords = newCoords;
+    animating = false;
+    clearCanvas();
+    oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    playPauseBtn.disabled = false;
+    replayBtn.disabled = false;
+
+    if (startFromHalf && coords.length > 0) {
+        const mid = Math.floor(coords.length / 2);
+        batchDraw(0, mid);          // draw first half instantly
+        currentIdx = mid;
+        const [, y] = normalize(coords[mid]);
+        window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
+    } else if (coords.length > 0) {
+        currentIdx = 0;
+        const [, y] = normalize(coords[0]);
+        window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
+    }
+
+    updateUI();
+    play();
+}
+
+// Auto-load bundled save file, starting from the halfway point
+fetch('path0_0.sav')
+    .then(r => r.arrayBuffer())
+    .then(buf => loadCoords(parseSavBuffer(buf), true))
+    .catch(() => { statusEl.textContent = 'Load a .sav file to begin'; });
+
+// Manual file override
 document.getElementById('pathInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(ev) {
-        const arr = new Uint8Array(ev.target.result);
-        coords = [];
-        for (let i = 0; i < arr.length; i += 4) {
-            if (arr[i] !== 0) {
-                let x = (arr[i+1] << 8) + arr[i];
-                if (x > 0x8000) x -= 0x8000;
-                const y = (arr[i+3] << 8) + arr[i+2];
-                coords.push([x, y]);
-            }
-        }
-        currentIdx = 0;
-        animating = false;
-        clearCanvas();
-        oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-        playPauseBtn.disabled = false;
-        replayBtn.disabled = false;
-        updateUI();
-        // Scroll to start of journey
-        if (coords.length > 0) {
-            const [, y] = normalize(coords[0]);
-            window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
-        }
-    };
+    reader.onload = ev => loadCoords(parseSavBuffer(ev.target.result), false);
     reader.readAsArrayBuffer(file);
-});
-
-document.getElementById('backgroundInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const img = new Image();
-    img.onload = () => {
-        bgImages.base = img;
-        clearCanvas();
-        if (coords.length > 0 && currentIdx > 0) batchDraw(0, currentIdx);
-    };
-    img.src = URL.createObjectURL(file);
 });
 
 // ── Controls ───────────────────────────────────────────────────────────────
@@ -535,18 +530,6 @@ function liveRedraw() {
     drawDot(currentIdx);
     if (wasAnimating) play();
 }
-
-document.getElementById('alpha-range').addEventListener('input', function() {
-    dotAlpha = parseFloat(this.value);
-    document.getElementById('alphaLabel').textContent = dotAlpha.toFixed(2);
-    liveRedraw();
-});
-
-document.getElementById('layer-range').addEventListener('input', function() {
-    layerStrength = parseFloat(this.value);
-    document.getElementById('layerLabel').textContent = layerStrength.toFixed(2);
-    liveRedraw();
-});
 
 document.getElementById('annotationsToggle').addEventListener('change', function() {
     showAnnotations = this.checked;

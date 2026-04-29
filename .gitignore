@@ -1,6 +1,6 @@
-# Personal save data - never commit
-path0_0.sav
-*.sav
+# Other save slots
+path1_0.sav
+path2_0.sav
 
 # Superseded / working files
 map_background.jpg
