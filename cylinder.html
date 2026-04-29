@@ -252,6 +252,11 @@ function renderLoop(ts) {
         updateUI();
     }
 
+    // Smoothly move orbit target to follow the indicator
+    if (animating && indicator) {
+        orbit.target.lerp(indicator.position, 0.06);
+    }
+
     orbit.update();
     renderer.render(scene, camera);
 }
