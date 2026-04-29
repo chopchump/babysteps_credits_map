@@ -205,11 +205,20 @@ new THREE.TextureLoader().load('map-base.jpg', tex => {
     scene.add(cap);
 });
 
+const DOT_RAISE = 0.12;   // world units above cylinder surface
+const IND_RAISE = 0.22;   // indicator raised a bit more so it sits above trail dots
+
+// Raise a surface point radially outward
+function raisePoint(x, y, z, amount) {
+    const scale = (CYL_RADIUS + amount) / CYL_RADIUS;
+    return [x * scale, y, z * scale];
+}
+
 // ── Path state ─────────────────────────────────────────────────────────────
-let coords   = [];
-let pos3D    = null;   // Float32Array  (x,y,z) per point
-let dotMesh  = null;   // THREE.Points
-let indicator = null;  // THREE.Mesh sphere
+let coords    = [];
+let pos3D     = null;   // Float32Array (x,y,z) per point — on cylinder surface
+let dotMesh   = null;   // THREE.InstancedMesh of spheres
+let indicator = null;   // THREE.Mesh sphere (indicator)
 
 let currentIdx = 0;
 let animating  = false;
@@ -217,7 +226,7 @@ let speed      = sliderToSpeed(67);
 let ptsAccum   = 0;
 let lastTs     = null;
 
-// ── Build / rebuild THREE.Points from parsed coords ────────────────────────
+// ── Build InstancedMesh of spheres from parsed coords ─────────────────────
 function buildPath() {
     const n = coords.length;
     pos3D = new Float32Array(n * 3);
@@ -228,46 +237,47 @@ function buildPath() {
     }
 
     if (dotMesh) scene.remove(dotMesh);
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos3D, 3));
-    geo.setDrawRange(0, 0);
 
-    dotMesh = new THREE.Points(geo, new THREE.PointsMaterial({
-        color:         0x9b1206,
-        size:          0.54,
-        sizeAttenuation: true,
-        transparent:   true,
-        opacity:       0.9,
-        depthWrite:    false,
-    }));
+    const sGeo = new THREE.SphereGeometry(0.2, 7, 5);
+    const sMat = new THREE.MeshBasicMaterial({ color: 0x9b1206 });
+    dotMesh = new THREE.InstancedMesh(sGeo, sMat, n);
+    dotMesh.count = 0;   // start invisible; animation reveals them
+
+    const mtx = new THREE.Matrix4();
+    for (let i = 0; i < n; i++) {
+        const [rx, ry, rz] = raisePoint(pos3D[i*3], pos3D[i*3+1], pos3D[i*3+2], DOT_RAISE);
+        mtx.setPosition(rx, ry, rz);
+        dotMesh.setMatrixAt(i, mtx);
+    }
+    dotMesh.instanceMatrix.needsUpdate = true;
     scene.add(dotMesh);
 
-    // Indicator sphere
+    // Indicator — slightly larger sphere, raised a bit more
     if (indicator) scene.remove(indicator);
     indicator = new THREE.Mesh(
-        new THREE.SphereGeometry(0.11, 16, 10),
+        new THREE.SphereGeometry(0.32, 16, 10),
         new THREE.MeshBasicMaterial({ color: 0x9b1206 })
     );
     scene.add(indicator);
 }
 
 function showDotsUpTo(idx) {
-    if (dotMesh) dotMesh.geometry.setDrawRange(0, Math.min(idx + 1, coords.length));
+    if (dotMesh) dotMesh.count = Math.min(idx + 1, coords.length);
 }
 
-// Interpolated indicator position (handles cylinder wrap-around)
+// Interpolated indicator position, raised above surface (handles seam)
 function moveIndicator() {
     if (!indicator || !pos3D || currentIdx <= 0) return;
     const i0 = Math.min(currentIdx,     coords.length - 1);
     const i1 = Math.min(currentIdx + 1, coords.length - 1);
     const [cx0] = normalize(coords[i0]);
     const [cx1] = normalize(coords[i1]);
-    const t = Math.abs(cx1 - cx0) > 1000 ? 0 : ptsAccum; // no lerp across seam
-    indicator.position.set(
-        pos3D[i0*3]   + (pos3D[i1*3]   - pos3D[i0*3])   * t,
-        pos3D[i0*3+1] + (pos3D[i1*3+1] - pos3D[i0*3+1]) * t,
-        pos3D[i0*3+2] + (pos3D[i1*3+2] - pos3D[i0*3+2]) * t
-    );
+    const t = Math.abs(cx1 - cx0) > 1000 ? 0 : ptsAccum;
+    const x = pos3D[i0*3]   + (pos3D[i1*3]   - pos3D[i0*3])   * t;
+    const y = pos3D[i0*3+1] + (pos3D[i1*3+1] - pos3D[i0*3+1]) * t;
+    const z = pos3D[i0*3+2] + (pos3D[i1*3+2] - pos3D[i0*3+2]) * t;
+    const [rx, ry, rz] = raisePoint(x, y, z, IND_RAISE);
+    indicator.position.set(rx, ry, rz);
 }
 
 // ── Unified render loop ────────────────────────────────────────────────────
