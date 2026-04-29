@@ -127,19 +127,16 @@ window.addEventListener('resize', () => {
 });
 
 // ── Custom camera controller ───────────────────────────────────────────────
-// θ tracks the dot's horizontal canvas position; Y follows with a dead zone
-// (same logic as the 2D scroll). User can drag to add a rotation offset.
-const DEAD_ZONE    = 0.35;
-const LERP_THETA   = 0.05;
-const LERP_Y       = 0.08;
+const DEAD_ZONE  = 0.35;
+const LERP_THETA = 0.05;
+const LERP_Y     = 0.08;
 
-let camTheta       = 0;        // current camera angle (radians)
-let camY           = 0;        // current camera height (world units)
-let targetCamY     = 0;        // desired camera height
-let userThetaOff   = 0;        // manual rotation offset added by dragging
-let camDist        = CYL_RADIUS * 2.8;
+let autoTheta    = 0;   // smoothly-lerped auto-follow angle (shortest-path)
+let camY         = 0;   // current camera height
+let targetCamY   = 0;
+let userThetaOff = 0;   // immediate drag offset — NOT lerped
+let camDist      = CYL_RADIUS * 3.0;
 
-// Half the visible world-height in the dead zone at the current camDist
 function deadZoneH() {
     return camDist * Math.tan(CAM_FOV / 2 * Math.PI / 180) * DEAD_ZONE;
 }
@@ -148,18 +145,21 @@ function updateCamera() {
     if (!indicator) return;
     const dot = indicator.position;
 
-    // θ: derive from dot's canvas x → angle, add user offset
+    // Auto-follow θ with shortest-path lerp (avoids spinning at the ±π seam)
     const dotTheta = Math.atan2(dot.x, dot.z);
-    const targetTheta = dotTheta + userThetaOff;
+    let dθ = dotTheta - autoTheta;
+    while (dθ >  Math.PI) dθ -= 2 * Math.PI;
+    while (dθ < -Math.PI) dθ += 2 * Math.PI;
+    autoTheta += dθ * LERP_THETA;
 
-    // Y: dead zone — only move when dot drifts outside the band
+    // User drag is applied directly on top — no lerp, feels like turning the cylinder
+    const camTheta = autoTheta + userThetaOff;
+
+    // Y dead zone
     const dz = deadZoneH();
     if      (dot.y > camY + dz) targetCamY = dot.y - dz;
     else if (dot.y < camY - dz) targetCamY = dot.y + dz;
-
-    // Lerp both
-    camTheta += (targetTheta - camTheta) * LERP_THETA;
-    camY     += (targetCamY  - camY)     * LERP_Y;
+    camY += (targetCamY - camY) * LERP_Y;
 
     camera.position.set(
         Math.sin(camTheta) * camDist,
@@ -169,7 +169,7 @@ function updateCamera() {
     camera.lookAt(0, camY, 0);
 }
 
-// Drag to rotate
+// Drag to rotate (immediate — no lerp)
 let dragging = false, dragX0 = 0, dragOff0 = 0;
 renderer.domElement.addEventListener('mousedown', e => {
     dragging = true; dragX0 = e.clientX; dragOff0 = userThetaOff;
@@ -195,7 +195,7 @@ new THREE.TextureLoader().load('map-base.jpg', tex => {
 
     const geo = new THREE.CylinderGeometry(CYL_RADIUS, CYL_RADIUS, CYL_HEIGHT, 128, 1, true);
     scene.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-        map: tex, side: THREE.FrontSide
+        map: tex, side: THREE.BackSide
     })));
 });
 
@@ -369,7 +369,7 @@ fetch('path0_0.sav')
         if (indicator) {
             camY = indicator.position.y;
             targetCamY = camY;
-            camTheta = Math.atan2(indicator.position.x, indicator.position.z);
+            autoTheta = Math.atan2(indicator.position.x, indicator.position.z);
             updateCamera();
         }
 
