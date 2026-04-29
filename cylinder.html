@@ -62,7 +62,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 // ── Coordinate constants (match 2D viewer exactly) ─────────────────────────
 const COEFF     = 1.3250;
@@ -111,8 +110,8 @@ const scene    = new THREE.Scene();
 scene.background = new THREE.Color(0x0e0e16);
 scene.fog      = new THREE.Fog(0x0e0e16, CYL_RADIUS * 12, CYL_RADIUS * 20);
 
-const camera   = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.01, 500);
-camera.position.set(0, 0, CYL_RADIUS * 2.8);
+const CAM_FOV  = 45;
+const camera   = new THREE.PerspectiveCamera(CAM_FOV, innerWidth / innerHeight, 0.01, 500);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(devicePixelRatio);
@@ -121,20 +120,71 @@ document.body.insertBefore(renderer.domElement, document.getElementById('control
 renderer.domElement.style.position = 'fixed';
 renderer.domElement.style.inset = '0';
 
-const orbit = new THREE.OrbitControls(camera, renderer.domElement);
-orbit.enableDamping  = true;
-orbit.dampingFactor  = 0.07;
-orbit.enablePan      = true;
-orbit.panSpeed       = 0.4;
-orbit.screenSpacePanning = false;
-orbit.minDistance    = CYL_RADIUS * 1.1;
-orbit.maxDistance    = CYL_RADIUS * 6;
-
 window.addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
 });
+
+// ── Custom camera controller ───────────────────────────────────────────────
+// θ tracks the dot's horizontal canvas position; Y follows with a dead zone
+// (same logic as the 2D scroll). User can drag to add a rotation offset.
+const DEAD_ZONE    = 0.35;
+const LERP_THETA   = 0.05;
+const LERP_Y       = 0.08;
+
+let camTheta       = 0;        // current camera angle (radians)
+let camY           = 0;        // current camera height (world units)
+let targetCamY     = 0;        // desired camera height
+let userThetaOff   = 0;        // manual rotation offset added by dragging
+let camDist        = CYL_RADIUS * 2.8;
+
+// Half the visible world-height in the dead zone at the current camDist
+function deadZoneH() {
+    return camDist * Math.tan(CAM_FOV / 2 * Math.PI / 180) * DEAD_ZONE;
+}
+
+function updateCamera() {
+    if (!indicator) return;
+    const dot = indicator.position;
+
+    // θ: derive from dot's canvas x → angle, add user offset
+    const dotTheta = Math.atan2(dot.x, dot.z);
+    const targetTheta = dotTheta + userThetaOff;
+
+    // Y: dead zone — only move when dot drifts outside the band
+    const dz = deadZoneH();
+    if      (dot.y > camY + dz) targetCamY = dot.y - dz;
+    else if (dot.y < camY - dz) targetCamY = dot.y + dz;
+
+    // Lerp both
+    camTheta += (targetTheta - camTheta) * LERP_THETA;
+    camY     += (targetCamY  - camY)     * LERP_Y;
+
+    camera.position.set(
+        Math.sin(camTheta) * camDist,
+        camY,
+        Math.cos(camTheta) * camDist
+    );
+    camera.lookAt(0, camY, 0);
+}
+
+// Drag to rotate
+let dragging = false, dragX0 = 0, dragOff0 = 0;
+renderer.domElement.addEventListener('mousedown', e => {
+    dragging = true; dragX0 = e.clientX; dragOff0 = userThetaOff;
+});
+document.addEventListener('mouseup',   () => dragging = false);
+document.addEventListener('mousemove', e => {
+    if (dragging) userThetaOff = dragOff0 - (e.clientX - dragX0) * 0.006;
+});
+
+// Scroll to zoom
+renderer.domElement.addEventListener('wheel', e => {
+    camDist = Math.max(CYL_RADIUS * 1.1,
+                       Math.min(CYL_RADIUS * 7, camDist + e.deltaY * 0.02));
+    e.preventDefault();
+}, { passive: false });
 
 // ── Cylinder map background ────────────────────────────────────────────────
 new THREE.TextureLoader().load('map-base.jpg', tex => {
@@ -252,12 +302,7 @@ function renderLoop(ts) {
         updateUI();
     }
 
-    // Smoothly move orbit target to follow the indicator
-    if (animating && indicator) {
-        orbit.target.lerp(indicator.position, 0.06);
-    }
-
-    orbit.update();
+    updateCamera();
     renderer.render(scene, camera);
 }
 requestAnimationFrame(renderLoop);
@@ -319,6 +364,14 @@ fetch('path0_0.sav')
         currentIdx = mid;
         showDotsUpTo(mid);
         moveIndicator();
+
+        // Initialise camera to face the starting dot
+        if (indicator) {
+            camY = indicator.position.y;
+            targetCamY = camY;
+            camTheta = Math.atan2(indicator.position.x, indicator.position.z);
+            updateCamera();
+        }
 
         playPauseBtn.disabled = false;
         document.getElementById('replayBtn').disabled = false;
