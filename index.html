@@ -228,7 +228,12 @@ let showAnnotations = false;
 
 function loadBg(key, src) {
     const img = new Image();
-    img.onload = () => { bgImages[key] = img; drawBackground(); };
+    img.onload = () => {
+        bgImages[key] = img;
+        // Redraw background then re-stamp any already-drawn dots on top
+        clearCanvas();
+        if (coords.length > 0 && currentIdx > 0) batchDraw(0, currentIdx);
+    };
     img.src = src;
 }
 loadBg('base',    'map-base.png');
@@ -477,8 +482,8 @@ function loadCoords(newCoords, startFromHalf = false) {
     replayBtn.disabled = false;
 
     if (startFromHalf && coords.length > 0) {
-        const mid = Math.floor(coords.length / 2);
-        batchDraw(0, mid);          // draw first half instantly
+        const mid = Math.min(11600, coords.length - 1);
+        batchDraw(0, mid);          // draw trail up to start point instantly
         currentIdx = mid;
         const [, y] = normalize(coords[mid]);
         window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
