@@ -231,8 +231,8 @@
         <button class="btn" id="replayBtn" disabled>↺ Replay</button>
 
         <div class="group">
-            <label>Speed: <span id="speedLabel">20 pts/sec (~21 min)</span></label>
-            <input type="range" id="speed-range" min="1" max="100" value="44">
+            <label>Speed: <span id="speedLabel">100× real-time</span></label>
+            <input type="range" id="speed-range" min="1" max="100" value="67">
         </div>
 
         <label class="check-row">
@@ -288,17 +288,18 @@ const CUR_RADIUS = 11;
 let dotAlpha      = 0.9;    // base dot opacity on path canvas (source-over)
 let layerStrength = 0.03;   // per-visit darkening on separate darkening canvas (0 = none)
 
-// ── Speed helpers (log scale: slider 1-100 → 1-2000 pts/sec) ─────────────
-const MIN_SPD = 1, MAX_SPD = 2000;
-function sliderToSpeed(v) {
-    return MIN_SPD * Math.pow(MAX_SPD / MIN_SPD, (v - 1) / 99);
+// Each path point = ~5.3s of real gameplay (derived from a fresh save with known playtime)
+const SECS_PER_POINT = 5.3;
+function fmtMultiplier(ptsPerSec) {
+    const x = ptsPerSec * SECS_PER_POINT;
+    return x >= 10 ? `${Math.round(x)}×` : `${x.toFixed(1)}×`;
 }
-function fmtEta(ptsPerSec, remaining) {
-    if (!isFinite(ptsPerSec) || ptsPerSec <= 0 || remaining <= 0) return '';
-    const secs = Math.round(remaining / ptsPerSec);
-    if (secs < 60)  return `~${secs}s`;
-    if (secs < 3600) return `~${Math.round(secs/60)}min`;
-    return `~${(secs/3600).toFixed(1)}hr`;
+
+// ── Speed helpers (log scale: slider 1-100 → 1×-1000× real-time) ──────────
+const MIN_MULT = 1, MAX_MULT = 1000;
+function sliderToSpeed(v) {
+    const mult = MIN_MULT * Math.pow(MAX_MULT / MIN_MULT, (v - 1) / 99);
+    return mult / SECS_PER_POINT; // convert multiplier to pts/sec
 }
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -306,7 +307,7 @@ let coords = [];
 let currentIdx = 0;
 let animating = false;
 let rafId = null;
-let speed = sliderToSpeed(44); // pts/sec (~20 pts/sec)
+let speed = sliderToSpeed(67); // 100× real-time
 let ptsAccum = 0;              // fractional accumulator
 let lastTs = null;             // timestamp of previous frame
 let targetScrollY = null;      // desired scroll position for smooth follow
@@ -550,8 +551,7 @@ function updateUI() {
             : currentIdx === 0 ? `${n.toLocaleString()} points loaded. Press Play!`
             : 'Paused';
     } else {
-        const eta = fmtEta(speed, n - currentIdx);
-        statusEl.textContent = `Playing... ${eta} remaining`;
+        statusEl.textContent = `Playing... ${fmtMultiplier(speed)} real-time`;
     }
 }
 
@@ -616,10 +616,8 @@ replayBtn.addEventListener('click', () => { if (coords.length > 0) replay(); });
 
 document.getElementById('speed-range').addEventListener('input', function() {
     speed = sliderToSpeed(parseInt(this.value));
-    const remaining = coords.length - currentIdx;
-    const ptsDisp = speed < 10 ? speed.toFixed(1) : Math.round(speed);
     document.getElementById('speedLabel').textContent =
-        `${ptsDisp} pts/sec ${fmtEta(speed, remaining)}`;
+        `${fmtMultiplier(speed)} real-time`;
 });
 
 function liveRedraw() {
