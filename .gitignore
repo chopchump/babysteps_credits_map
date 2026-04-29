@@ -1,0 +1,18 @@
+# Personal save data - never commit
+path0_0.sav
+*.sav
+
+# Superseded / working files
+map_background.jpg
+map_clean.jpg
+map_raw_stitch.jpg
+
+# Scratch images
+extracted/
+download*.png
+Screenshot*.png
+main dot colour.png
+assemble00-05*
+
+# Claude Code
+.claude/

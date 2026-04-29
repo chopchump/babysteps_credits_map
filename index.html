@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Baby Steps - Animated Path</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #111;
+            color: #ddd;
+            font-family: monospace;
+            overflow-x: hidden;
+        }
+
+        /* ── Controls bar ─────────────────────────────────────────────────── */
+        #controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(15, 15, 25, 0.96);
+            border-top: 1px solid #333;
+            padding: 10px 16px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            backdrop-filter: blur(4px);
+        }
+
+        #row-top {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        #row-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .group {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .group label {
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .btn {
+            background: #c4509a;
+            color: #fff;
+            border: none;
+            padding: 6px 18px;
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 3px;
+            white-space: nowrap;
+            align-self: flex-end;
+        }
+        .btn:hover:not(:disabled) { background: #e060b0; }
+        .btn:disabled { background: #333; color: #666; cursor: default; }
+
+        input[type=file] { font-size: 11px; color: #bbb; max-width: 200px; }
+
+        input[type=range] { accent-color: #ff76c6; cursor: pointer; }
+
+        #speed-range { width: 100px; }
+        #progress-range { flex: 1; height: 6px; }
+
+        #status {
+            font-size: 11px;
+            color: #777;
+            align-self: center;
+            white-space: nowrap;
+        }
+
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: #aaa;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .check-row input { accent-color: #ff76c6; cursor: pointer; }
+
+        /* ── Viewer ────────────────────────────────────────────────────────── */
+        #viewer {
+            position: relative;
+            width: 100%;
+            cursor: grab;
+            user-select: none;
+        }
+        #viewer.dragging { cursor: grabbing; }
+
+        #path-canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #1a1a1a;
+        }
+
+        #darkening-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            mix-blend-mode: multiply;
+        }
+
+        #overlay-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            mix-blend-mode: multiply;
+        }
+
+        /* Bottom padding so canvas isn't hidden under controls */
+        body { padding-bottom: 90px; }
+    </style>
+</head>
+<body>
+
+<div id="viewer">
+    <canvas id="path-canvas" width="2048" height="12288"></canvas>
+    <canvas id="darkening-canvas" width="2048" height="12288"></canvas>
+    <canvas id="overlay-canvas" width="2048" height="12288"></canvas>
+</div>
+
+<div id="controls">
+    <div id="row-top">
+
+        <div class="group">
+            <label>Path file (.sav)</label>
+            <input type="file" id="pathInput" accept=".sav">
+        </div>
+
+        <div class="group">
+            <label>Background image</label>
+            <input type="file" id="backgroundInput" accept="image/*">
+        </div>
+
+        <button class="btn" id="playPauseBtn" disabled>▶ Play</button>
+        <button class="btn" id="replayBtn" disabled>↺ Replay</button>
+
+        <div class="group">
+            <label>Speed: <span id="speedLabel">20 pts/sec (~21 min)</span></label>
+            <input type="range" id="speed-range" min="1" max="100" value="44">
+        </div>
+
+        <div class="group">
+            <label>Dot opacity: <span id="alphaLabel">0.90</span></label>
+            <input type="range" id="alpha-range" min="0.05" max="1.00" step="0.01" value="0.90" style="width:90px">
+        </div>
+
+        <div class="group">
+            <label>Overlap darkening: <span id="layerLabel">0.03</span></label>
+            <input type="range" id="layer-range" min="0.00" max="0.10" step="0.005" value="0.03" style="width:90px">
+        </div>
+
+        <label class="check-row">
+            <input type="checkbox" id="annotationsToggle" checked>
+            Annotations
+        </label>
+
+        <label class="check-row">
+            <input type="checkbox" id="autoScroll" checked>
+            Auto-scroll
+        </label>
+
+        <div id="status">Load a .sav file to begin</div>
+    </div>
+
+    <div id="row-progress">
+        <span style="font-size: 11px; color: #666; white-space:nowrap;">Progress</span>
+        <input type="range" id="progress-range" min="0" max="10000" value="0" step="1">
+        <span id="progress-label" style="font-size: 11px; color: #666; white-space:nowrap; min-width: 100px; text-align: right;">0 / 0</span>
+    </div>
+</div>
+
+<script>
+// ── Constants (match original viewer exactly) ──────────────────────────────
+const CANVAS_W = 2048;
+const CANVAS_H = 2048 * 6; // 12288
+const COEFF = 1.3250;
+const X_PADDING = 150;
+const Y_PADDING = 180;
+const DOT_RADIUS = 5;
+const CUR_RADIUS = 11;
+
+let dotAlpha      = 0.9;    // base dot opacity on path canvas (source-over)
+let layerStrength = 0.03;   // per-visit darkening on separate darkening canvas (0 = none)
+
+// ── Speed helpers (log scale: slider 1-100 → 1-2000 pts/sec) ─────────────
+const MIN_SPD = 1, MAX_SPD = 2000;
+function sliderToSpeed(v) {
+    return MIN_SPD * Math.pow(MAX_SPD / MIN_SPD, (v - 1) / 99);
+}
+function fmtEta(ptsPerSec, remaining) {
+    if (!isFinite(ptsPerSec) || ptsPerSec <= 0 || remaining <= 0) return '';
+    const secs = Math.round(remaining / ptsPerSec);
+    if (secs < 60)  return `~${secs}s`;
+    if (secs < 3600) return `~${Math.round(secs/60)}min`;
+    return `~${(secs/3600).toFixed(1)}hr`;
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+let coords = [];
+let currentIdx = 0;
+let animating = false;
+let rafId = null;
+let speed = sliderToSpeed(44); // pts/sec (~20 pts/sec)
+let ptsAccum = 0;              // fractional accumulator
+let lastTs = null;             // timestamp of previous frame
+let targetScrollY = null;      // desired scroll position for smooth follow
+
+// ── Canvas setup ───────────────────────────────────────────────────────────
+const pathCanvas      = document.getElementById('path-canvas');
+const darkeningCanvas = document.getElementById('darkening-canvas');
+const overlayCanvas   = document.getElementById('overlay-canvas');
+const pCtx  = pathCanvas.getContext('2d');
+const dkCtx = darkeningCanvas.getContext('2d');
+const oCtx  = overlayCanvas.getContext('2d');
+
+// ── Background images ──────────────────────────────────────────────────────
+const bgImages = { base: null, markers: null };
+let showAnnotations = true;
+
+function loadBg(key, src) {
+    const img = new Image();
+    img.onload = () => { bgImages[key] = img; drawBackground(); };
+    img.src = src;
+}
+loadBg('base',    'map-base.png');
+loadBg('markers', 'map-markers.png');
+
+function drawBackground() {
+    pCtx.globalCompositeOperation = 'source-over';
+    if (bgImages.base) {
+        pCtx.drawImage(bgImages.base, 0, 0, CANVAS_W, CANVAS_H);
+    } else {
+        pCtx.fillStyle = '#c8a87a';
+        pCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    }
+    if (showAnnotations && bgImages.markers) {
+        pCtx.drawImage(bgImages.markers, 0, 0, CANVAS_W, CANVAS_H);
+    }
+}
+
+function clearCanvas() {
+    pCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    drawBackground();
+    dkCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+}
+
+// ── Coordinate helpers ─────────────────────────────────────────────────────
+function normalize([rx, ry]) {
+    let x = (rx * 1.005 * COEFF / 25) + X_PADDING;
+    let y = ((CANVAS_H * 5 - ry * 0.983 * COEFF) / 5) + Y_PADDING;
+    return [x, y];
+}
+
+
+// ── Batch draw dots from startIdx to endIdx (exclusive) ────────────────────
+function batchDraw(startIdx, endIdx) {
+    if (endIdx <= startIdx) return;
+
+    // Base dots on path canvas — source-over, idempotent at alpha=1 so
+    // overlapping dots look the same as single dots when layerStrength=0
+    pCtx.fillStyle = `rgba(140, 14, 6, ${dotAlpha})`;
+    for (let i = startIdx; i < endIdx; i++) {
+        const [x, y] = normalize(coords[i]);
+        pCtx.beginPath();
+        pCtx.arc(x, y, DOT_RADIUS, 0, Math.PI * 2);
+        pCtx.fill();
+    }
+
+    // Darkening on separate canvas — accumulates per visit, CSS-multiplied over path canvas.
+    // At layerStrength=0 nothing is drawn so there is truly no overlap effect.
+    if (layerStrength > 0) {
+        dkCtx.fillStyle = `rgba(0, 0, 0, ${layerStrength})`;
+        for (let i = startIdx; i < endIdx; i++) {
+            const [x, y] = normalize(coords[i]);
+            dkCtx.beginPath();
+            dkCtx.arc(x, y, DOT_RADIUS, 0, Math.PI * 2);
+            dkCtx.fill();
+        }
+    }
+}
+
+// ── Position indicator on overlay canvas ───────────────────────────────────
+function drawDotAt(x, y) {
+    oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    oCtx.fillStyle = `rgba(140, 14, 6, ${dotAlpha})`;
+    oCtx.beginPath();
+    oCtx.arc(x, y, CUR_RADIUS, 0, Math.PI * 2);
+    oCtx.fill();
+}
+
+// Lerp the indicator between coords[currentIdx] and coords[currentIdx+1].
+// Skip interpolation on teleports (map wrap-around) so the dot doesn't
+// slide across the middle of the map.
+function drawIndicator() {
+    if (currentIdx <= 0 || currentIdx >= coords.length) return;
+    const i1 = Math.min(currentIdx + 1, coords.length - 1);
+    const [x0, y0] = normalize(coords[currentIdx]);
+    const [x1, y1] = normalize(coords[i1]);
+    const isTeleport = Math.abs(x1 - x0) > 1000;
+    const t = isTeleport ? 0 : ptsAccum;
+    drawDotAt(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
+}
+
+// Used when paused / scrubbing — snap to exact coord
+function drawDot(idx) {
+    if (idx <= 0 || idx >= coords.length) { oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H); return; }
+    const [x, y] = normalize(coords[idx]);
+    drawDotAt(x, y);
+}
+
+// ── Auto-scroll: update target, then lerp toward it each frame ────────────
+const SCROLL_LERP  = 0.08;
+const DEAD_ZONE    = 0.35; // dot can roam freely in the middle 35% of the viewport
+
+// Canvas coords → CSS pixels (canvas is CSS-scaled to window width)
+function displayScale() {
+    return pathCanvas.clientWidth / CANVAS_W;
+}
+
+function setScrollTarget(idx) {
+    if (!document.getElementById('autoScroll').checked) return;
+    if (idx <= 0) return;
+
+    const [, y]      = normalize(coords[idx]);
+    const dotCssY    = y * displayScale();          // dot in page-absolute CSS px
+    const viewH      = window.innerHeight;
+    const dotViewY   = dotCssY - window.scrollY;    // dot relative to viewport top
+
+    const zoneTop    = viewH * (0.5 - DEAD_ZONE / 2);
+    const zoneBottom = viewH * (0.5 + DEAD_ZONE / 2);
+
+    if (dotViewY < zoneTop) {
+        // dot above zone — scroll up until dot sits at zone top
+        targetScrollY = dotCssY - zoneTop;
+    } else if (dotViewY > zoneBottom) {
+        // dot below zone — scroll down until dot sits at zone bottom
+        targetScrollY = dotCssY - zoneBottom;
+    }
+    // within zone: leave targetScrollY unchanged
+}
+
+function smoothScroll() {
+    if (targetScrollY === null) return;
+    if (!document.getElementById('autoScroll').checked) return;
+    const next = window.scrollY + (targetScrollY - window.scrollY) * SCROLL_LERP;
+    window.scrollTo({ top: next, behavior: 'instant' });
+}
+
+// ── Animation loop ─────────────────────────────────────────────────────────
+function animFrame(ts) {
+    if (!animating) return;
+
+    if (lastTs === null) lastTs = ts;
+    // Cap elapsed to 100ms so a tab-switch doesn't cause a huge jump
+    const elapsed = Math.min(ts - lastTs, 100);
+    lastTs = ts;
+
+    ptsAccum += speed * elapsed / 1000;
+    const ptsToDraw = Math.floor(ptsAccum);
+    ptsAccum -= ptsToDraw;
+
+    if (ptsToDraw > 0) {
+        const end = Math.min(currentIdx + ptsToDraw, coords.length);
+        batchDraw(currentIdx, end);
+        currentIdx = end;
+    }
+
+    if (currentIdx >= coords.length) {
+        oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        animating = false;
+        playPauseBtn.textContent = '▶ Play';
+    } else {
+        drawIndicator();
+        setScrollTarget(currentIdx);
+        smoothScroll();
+        rafId = requestAnimationFrame(animFrame);
+    }
+
+    updateUI();
+}
+
+function play() {
+    if (currentIdx >= coords.length) currentIdx = 0;
+    animating = true;
+    ptsAccum = 0;
+    lastTs = null;
+    playPauseBtn.textContent = '⏸ Pause';
+    rafId = requestAnimationFrame(animFrame);
+}
+
+function pause() {
+    animating = false;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    playPauseBtn.textContent = '▶ Play';
+}
+
+function replay() {
+    pause();
+    clearCanvas();
+    oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    currentIdx = 0;
+    targetScrollY = null;
+    updateUI();
+    // Jump instantly to the starting point, then let smooth-scroll take over
+    if (coords.length > 0) {
+        const [, y] = normalize(coords[0]);
+        window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
+    }
+    play();
+}
+
+// ── Scrub to arbitrary position ────────────────────────────────────────────
+function scrubTo(fraction) {
+    pause();
+    const target = Math.floor(fraction * coords.length);
+    clearCanvas();
+    oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    currentIdx = 0;
+    batchDraw(0, target);
+    currentIdx = target;
+    drawDot(currentIdx);
+    updateUI();
+}
+
+// ── UI sync ────────────────────────────────────────────────────────────────
+const playPauseBtn  = document.getElementById('playPauseBtn');
+const replayBtn     = document.getElementById('replayBtn');
+const progressRange = document.getElementById('progress-range');
+const progressLabel = document.getElementById('progress-label');
+const statusEl      = document.getElementById('status');
+
+function updateUI() {
+    const n = coords.length;
+    progressRange.value = n > 0 ? Math.round((currentIdx / n) * 10000) : 0;
+    progressLabel.textContent = `${currentIdx.toLocaleString()} / ${n.toLocaleString()}`;
+    if (!animating) {
+        statusEl.textContent = n === 0 ? 'Load a .sav file to begin'
+            : currentIdx >= n ? 'Finished!'
+            : currentIdx === 0 ? `${n.toLocaleString()} points loaded. Press Play!`
+            : 'Paused';
+    } else {
+        const eta = fmtEta(speed, n - currentIdx);
+        statusEl.textContent = `Playing... ${eta} remaining`;
+    }
+}
+
+// ── File loading ───────────────────────────────────────────────────────────
+document.getElementById('pathInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const arr = new Uint8Array(ev.target.result);
+        coords = [];
+        for (let i = 0; i < arr.length; i += 4) {
+            if (arr[i] !== 0) {
+                let x = (arr[i+1] << 8) + arr[i];
+                if (x > 0x8000) x -= 0x8000;
+                const y = (arr[i+3] << 8) + arr[i+2];
+                coords.push([x, y]);
+            }
+        }
+        currentIdx = 0;
+        animating = false;
+        clearCanvas();
+        oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        playPauseBtn.disabled = false;
+        replayBtn.disabled = false;
+        updateUI();
+        // Scroll to start of journey
+        if (coords.length > 0) {
+            const [, y] = normalize(coords[0]);
+            window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
+        }
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('backgroundInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+        bgImages.base = img;
+        clearCanvas();
+        if (coords.length > 0 && currentIdx > 0) batchDraw(0, currentIdx);
+    };
+    img.src = URL.createObjectURL(file);
+});
+
+// ── Controls ───────────────────────────────────────────────────────────────
+playPauseBtn.addEventListener('click', () => animating ? pause() : play());
+
+replayBtn.addEventListener('click', () => { if (coords.length > 0) replay(); });
+
+document.getElementById('speed-range').addEventListener('input', function() {
+    speed = sliderToSpeed(parseInt(this.value));
+    const remaining = coords.length - currentIdx;
+    const ptsDisp = speed < 10 ? speed.toFixed(1) : Math.round(speed);
+    document.getElementById('speedLabel').textContent =
+        `${ptsDisp} pts/sec ${fmtEta(speed, remaining)}`;
+});
+
+function liveRedraw() {
+    if (coords.length === 0) return;
+    const wasAnimating = animating;
+    pause();
+    clearCanvas();
+    oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    batchDraw(0, currentIdx);
+    drawDot(currentIdx);
+    if (wasAnimating) play();
+}
+
+document.getElementById('alpha-range').addEventListener('input', function() {
+    dotAlpha = parseFloat(this.value);
+    document.getElementById('alphaLabel').textContent = dotAlpha.toFixed(2);
+    liveRedraw();
+});
+
+document.getElementById('layer-range').addEventListener('input', function() {
+    layerStrength = parseFloat(this.value);
+    document.getElementById('layerLabel').textContent = layerStrength.toFixed(2);
+    liveRedraw();
+});
+
+document.getElementById('annotationsToggle').addEventListener('change', function() {
+    showAnnotations = this.checked;
+    liveRedraw();
+});
+
+progressRange.addEventListener('mousedown', () => pause());
+progressRange.addEventListener('input', function() {
+    if (coords.length === 0) return;
+    scrubTo(this.value / 10000);
+});
+
+// ── Drag-to-pan ────────────────────────────────────────────────────────────
+const viewer = document.getElementById('viewer');
+let dragging = false, dragStartX, dragStartY, scrollStartX, scrollStartY;
+
+viewer.addEventListener('mousedown', e => {
+    dragging = true;
+    viewer.classList.add('dragging');
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    scrollStartX = window.scrollX; scrollStartY = window.scrollY;
+    e.preventDefault();
+});
+document.addEventListener('mouseup', () => {
+    dragging = false;
+    viewer.classList.remove('dragging');
+});
+document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    window.scrollTo({
+        left: scrollStartX - (e.clientX - dragStartX),
+        top:  scrollStartY - (e.clientY - dragStartY),
+        behavior: 'auto'
+    });
+});
+</script>
+</body>
+</html>
