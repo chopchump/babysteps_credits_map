@@ -132,6 +132,31 @@
 
         /* Bottom padding so canvas isn't hidden under controls */
         body { padding-bottom: 90px; }
+
+        #sav-help {
+            display: none;
+            font-size: 11px;
+            color: #777;
+            max-width: 340px;
+            line-height: 1.5;
+            margin-top: 4px;
+        }
+        #sav-help.visible { display: block; }
+        #sav-help code {
+            color: #aaa;
+            font-family: monospace;
+        }
+        .copy-path {
+            background: none;
+            border: none;
+            color: #ff76c6;
+            font-size: 11px;
+            font-family: monospace;
+            cursor: pointer;
+            padding: 0;
+            text-decoration: underline dotted;
+        }
+        .copy-path:hover { color: #ff9ad6; }
     </style>
 </head>
 <body>
@@ -146,8 +171,13 @@
     <div id="row-top">
 
         <div class="group">
-            <label>Path file (.sav)</label>
+            <label>Load your own path</label>
             <input type="file" id="pathInput" accept=".sav">
+            <div id="sav-help">
+                Navigate to <button class="copy-path" id="copyPathBtn" title="Copy path">📋 %USERPROFILE%\AppData\LocalLow\DefaultCompany\BabySteps</button>,
+                open the numbered folder, then <code>save\</code> —
+                pick <code>path0_0.sav</code>, <code>path1_0.sav</code>, or <code>path2_0.sav</code>
+            </div>
         </div>
 
         <button class="btn" id="playPauseBtn" disabled>▶ Play</button>
@@ -236,7 +266,7 @@ function loadBg(key, src) {
     };
     img.src = src;
 }
-loadBg('base',    'map-base.png');
+loadBg('base',    'map-base.jpg');
 loadBg('markers', 'map-markers.png');
 
 function drawBackground() {
@@ -545,6 +575,17 @@ progressRange.addEventListener('mousedown', () => pause());
 progressRange.addEventListener('input', function() {
     if (coords.length === 0) return;
     scrubTo(this.value / 10000);
+});
+
+document.getElementById('pathInput').addEventListener('click', function() {
+    document.getElementById('sav-help').classList.add('visible');
+});
+
+document.getElementById('copyPathBtn').addEventListener('click', function() {
+    navigator.clipboard.writeText('%USERPROFILE%\\AppData\\LocalLow\\DefaultCompany\\BabySteps');
+    const orig = this.textContent;
+    this.textContent = '✓ Copied!';
+    setTimeout(() => this.textContent = orig, 1500);
 });
 
 // ── Drag-to-pan ────────────────────────────────────────────────────────────
