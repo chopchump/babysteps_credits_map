@@ -665,7 +665,6 @@ function switchMode(to3D) {
     document.getElementById('viewer').style.display         = to3D ? 'none'  : 'block';
     document.getElementById('view-3d').style.display        = to3D ? 'block' : 'none';
     document.getElementById('annotationsRow').style.display = to3D ? 'none' : '';
-    document.body.style.overflow = to3D ? 'hidden' : '';
 
     if (to3D) {
         if (!cyl) initCylinder();
