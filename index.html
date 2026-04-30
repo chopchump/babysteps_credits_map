@@ -11,6 +11,7 @@
             color: #ddd;
             font-family: monospace;
             overflow-x: hidden;
+            scrollbar-gutter: stable;
         }
 
         /* ── Controls bar ─────────────────────────────────────────────────── */
@@ -162,7 +163,6 @@
         </div>
 
         <button class="btn" id="playPauseBtn" disabled>▶ Play</button>
-        <button class="btn" id="replayBtn"    disabled>↺ Replay</button>
 
         <div class="group">
             <label>Speed: <span id="speedLabel">100× real-time</span></label>
@@ -752,7 +752,6 @@ function scrubTo(fraction) {
 // UI
 // ═══════════════════════════════════════════════════════════════════════════
 const playPauseBtn  = document.getElementById('playPauseBtn');
-const replayBtn     = document.getElementById('replayBtn');
 const progressRange = document.getElementById('progress-range');
 const progressLabel = document.getElementById('progress-label');
 const statusEl      = document.getElementById('status');
@@ -797,7 +796,6 @@ function loadCoords(newCoords, startFromHalf = false) {
     }
 
     playPauseBtn.disabled = false;
-    replayBtn.disabled    = false;
     progressRange.disabled = false;
     updateUI();
     play();
@@ -819,7 +817,6 @@ document.getElementById('pathInput').addEventListener('change', function(e) {
 
 // ── Controls ───────────────────────────────────────────────────────────────
 playPauseBtn.addEventListener('click', () => animating ? pause() : play());
-replayBtn.addEventListener('click',    () => { if (coords.length) replay(); });
 
 document.getElementById('speed-range').addEventListener('input', function() {
     speed = sliderToSpeed(+this.value);
