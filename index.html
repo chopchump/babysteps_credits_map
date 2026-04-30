@@ -16,11 +16,9 @@
         /* ── Controls bar ─────────────────────────────────────────────────── */
         #controls {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            bottom: 0; left: 0; right: 0;
             z-index: 100;
-            background: rgba(15, 15, 25, 0.96);
+            background: rgba(15,15,25,0.96);
             border-top: 1px solid #333;
             padding: 10px 16px 8px;
             display: flex;
@@ -28,75 +26,53 @@
             gap: 8px;
             backdrop-filter: blur(4px);
         }
-
         #row-top {
             display: flex;
             align-items: center;
             gap: 18px;
             flex-wrap: wrap;
         }
-
         #row-progress {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-
         .group {
             display: flex;
             flex-direction: column;
             gap: 3px;
         }
-
         .group label {
             font-size: 10px;
             letter-spacing: 0.08em;
             color: #888;
             text-transform: uppercase;
         }
-
         .btn {
-            background: #c4509a;
-            color: #fff;
-            border: none;
-            padding: 6px 18px;
-            font-family: monospace;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 3px;
-            white-space: nowrap;
-            align-self: flex-end;
+            background: #c4509a; color: #fff; border: none;
+            padding: 6px 18px; font-family: monospace; font-size: 14px;
+            font-weight: bold; cursor: pointer; border-radius: 3px;
+            white-space: nowrap; align-self: flex-end;
         }
         .btn:hover:not(:disabled) { background: #e060b0; }
         .btn:disabled { background: #333; color: #666; cursor: default; }
 
         input[type=file] { font-size: 11px; color: #bbb; max-width: 200px; }
-
         input[type=range] { accent-color: #ff76c6; cursor: pointer; }
-
         #speed-range { width: 100px; }
         #progress-range { flex: 1; height: 6px; }
 
         #status {
-            font-size: 11px;
-            color: #777;
-            align-self: center;
-            white-space: nowrap;
+            font-size: 11px; color: #777;
+            align-self: center; white-space: nowrap;
         }
-
         .check-row {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 12px;
-            color: #aaa;
-            cursor: pointer;
-            white-space: nowrap;
+            display: flex; align-items: center; gap: 5px;
+            font-size: 12px; color: #aaa; cursor: pointer; white-space: nowrap;
         }
         .check-row input { accent-color: #ff76c6; cursor: pointer; }
 
-        /* ── Viewer ────────────────────────────────────────────────────────── */
+        /* ── 2D viewer ────────────────────────────────────────────────────── */
         #viewer {
             position: relative;
             width: 100%;
@@ -104,143 +80,81 @@
             user-select: none;
         }
         #viewer.dragging { cursor: grabbing; }
-
         #path-canvas {
-            display: block;
-            width: 100%;
-            height: auto;
+            display: block; width: 100%; height: auto;
             background: #1a1a1a;
         }
-
         #darkening-canvas {
-            position: absolute;
-            top: 0; left: 0;
+            position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
             pointer-events: none;
             mix-blend-mode: multiply;
         }
-
         #overlay-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
             pointer-events: none;
             mix-blend-mode: multiply;
         }
-
-        /* Bottom padding so canvas isn't hidden under controls */
         body { padding-bottom: 90px; }
 
-        #repo-link {
-            position: fixed;
-            top: 10px;
-            right: 12px;
-            z-index: 101;
-            font-size: 11px;
-            color: #444;
-            text-decoration: none;
-            font-family: monospace;
-        }
-        #repo-link:hover { color: #888; }
-        #cylinder-link {
-            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
-            z-index: 101; font-size: 11px; color: #444; text-decoration: none; font-family: monospace;
-        }
-        #cylinder-link:hover { color: #888; }
-
-        #sav-modal-overlay {
+        /* ── 3D viewer ────────────────────────────────────────────────────── */
+        #view-3d {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.6);
-            z-index: 200;
-            align-items: center;
-            justify-content: center;
+        }
+
+        /* ── Misc links ───────────────────────────────────────────────────── */
+        #repo-link {
+            position: fixed; top: 10px; right: 12px;
+            z-index: 101; font-size: 11px; color: #444;
+            text-decoration: none; font-family: monospace;
+        }
+        #repo-link:hover { color: #888; }
+
+        /* ── Modal ────────────────────────────────────────────────────────── */
+        #sav-modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6); z-index: 200;
+            align-items: center; justify-content: center;
         }
         #sav-modal-overlay.show { display: flex; }
-
         #sav-modal {
-            background: #1a1a2e;
-            border: 1px solid #444;
-            border-radius: 6px;
-            padding: 28px 32px;
-            max-width: 480px;
-            width: 90%;
-            color: #ddd;
-            font-family: monospace;
+            background: #1a1a2e; border: 1px solid #444; border-radius: 6px;
+            padding: 28px 32px; max-width: 480px; width: 90%;
+            color: #ddd; font-family: monospace;
         }
-        #sav-modal h2 {
-            color: #ff76c6;
-            font-size: 16px;
-            margin-bottom: 16px;
-        }
-        #sav-modal ol {
-            padding-left: 20px;
-            line-height: 2;
-            font-size: 13px;
-        }
-        #sav-modal code {
-            color: #aaa;
-            background: #111;
-            padding: 1px 5px;
-            border-radius: 3px;
-        }
+        #sav-modal h2 { color: #ff76c6; font-size: 16px; margin-bottom: 16px; }
+        #sav-modal ol { padding-left: 20px; line-height: 2; font-size: 13px; }
+        #sav-modal code { color: #aaa; background: #111; padding: 1px 5px; border-radius: 3px; }
         .copy-path {
-            background: none;
-            border: none;
-            color: #ff76c6;
-            font-size: 12px;
-            font-family: monospace;
-            cursor: pointer;
-            padding: 0;
-            text-decoration: underline dotted;
-            display: inline;
+            background: none; border: none; color: #ff76c6; font-size: 12px;
+            font-family: monospace; cursor: pointer; padding: 0;
+            text-decoration: underline dotted; display: inline;
         }
         .copy-path:hover { color: #ff9ad6; }
-        .modal-btns {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .btn-cancel {
-            background: #333;
-            color: #aaa;
-        }
+        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background: #333; color: #aaa; }
         .btn-cancel:hover { background: #444; color: #ccc; }
-
-        #sav-help code {
-            color: #aaa;
-            font-family: monospace;
-        }
-        .copy-path {
-            background: none;
-            border: none;
-            color: #ff76c6;
-            font-size: 11px;
-            font-family: monospace;
-            cursor: pointer;
-            padding: 0;
-            text-decoration: underline dotted;
-        }
-        .copy-path:hover { color: #ff9ad6; }
     </style>
 </head>
 <body>
 
 <a id="repo-link" href="https://github.com/chopchump/babysteps_credits_map" target="_blank">source</a>
-<a id="cylinder-link" href="cylinder.html">3D →</a>
 
+<!-- 2D view -->
 <div id="viewer">
-    <canvas id="path-canvas" width="2048" height="12288"></canvas>
+    <canvas id="path-canvas"      width="2048" height="12288"></canvas>
     <canvas id="darkening-canvas" width="2048" height="12288"></canvas>
-    <canvas id="overlay-canvas" width="2048" height="12288"></canvas>
+    <canvas id="overlay-canvas"   width="2048" height="12288"></canvas>
 </div>
+
+<!-- 3D view (Three.js renderer inserted here on first use) -->
+<div id="view-3d"></div>
 
 <div id="controls">
     <div id="row-top">
-
         <div class="group">
             <label>Load your own path</label>
             <button class="btn" id="loadSavBtn">Choose file…</button>
@@ -248,7 +162,7 @@
         </div>
 
         <button class="btn" id="playPauseBtn" disabled>▶ Play</button>
-        <button class="btn" id="replayBtn" disabled>↺ Replay</button>
+        <button class="btn" id="replayBtn"    disabled>↺ Replay</button>
 
         <div class="group">
             <label>Speed: <span id="speedLabel">100× real-time</span></label>
@@ -256,22 +170,27 @@
         </div>
 
         <label class="check-row">
-            <input type="checkbox" id="annotationsToggle">
-            Annotations
+            <input type="checkbox" id="cylinderToggle">
+            Cylinder
         </label>
 
-        <label class="check-row">
+        <label class="check-row" id="autoScrollRow">
             <input type="checkbox" id="autoScroll" checked>
             Auto-scroll
         </label>
 
-        <div id="status">Loading...</div>
+        <label class="check-row" id="annotationsRow">
+            <input type="checkbox" id="annotationsToggle">
+            Annotations
+        </label>
+
+        <div id="status">Loading…</div>
     </div>
 
     <div id="row-progress">
-        <span style="font-size: 11px; color: #666; white-space:nowrap;">Progress</span>
-        <input type="range" id="progress-range" min="0" max="10000" value="0" step="1">
-        <span id="progress-label" style="font-size: 11px; color: #666; white-space:nowrap; min-width: 100px; text-align: right;">0 / 0</span>
+        <span style="font-size:11px;color:#666;white-space:nowrap;">Progress</span>
+        <input type="range" id="progress-range" min="0" max="10000" value="0" step="1" disabled>
+        <span id="progress-label" style="font-size:11px;color:#666;white-space:nowrap;min-width:100px;text-align:right;">0 / 0</span>
     </div>
 </div>
 
@@ -295,52 +214,73 @@
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// ── Constants (match original viewer exactly) ──────────────────────────────
-const CANVAS_W = 2048;
-const CANVAS_H = 2048 * 6; // 12288
+// ── Shared constants ───────────────────────────────────────────────────────
+const CANVAS_W = 2048, CANVAS_H = 12288;
 const COEFF = 1.3250;
-const X_PADDING = 150;
-const Y_PADDING = 180;
-const DOT_RADIUS = 5;
-const CUR_RADIUS = 11;
-
-let dotAlpha      = 0.9;    // base dot opacity on path canvas (source-over)
-let layerStrength = 0.03;   // per-visit darkening on separate darkening canvas (0 = none)
-
-// Each path point = ~5.3s of real gameplay (derived from a fresh save with known playtime)
+const X_PADDING = 150, Y_PADDING = 180;
 const SECS_PER_POINT = 5.3;
-function fmtEta(ptsPerSec, remaining) {
-    if (!isFinite(ptsPerSec) || ptsPerSec <= 0 || remaining <= 0) return '';
-    const secs = Math.round(remaining / ptsPerSec);
-    if (secs < 60)  return `~${secs}s`;
-    if (secs < 3600) return `~${Math.round(secs/60)}min`;
-    return `~${(secs/3600).toFixed(1)}hr`;
+
+// 2D dot style
+const DOT_RADIUS = 5, CUR_RADIUS = 11;
+let dotAlpha = 0.9, layerStrength = 0.03;
+
+// 3D geometry
+const WORLD_WRAP    = 32768;
+const X_WORLD_MIN   = X_PADDING;
+const X_WORLD_RANGE = WORLD_WRAP * 1.005 * COEFF / 25;   // ≈1745 canvas px
+const CYL_RADIUS    = 5;
+const CYL_HEIGHT    = CYL_RADIUS * 2 * Math.PI * (CANVAS_H / X_WORLD_RANGE);
+const DOT_RAISE     = 0.01;   // base radial raise for first disc layer
+const IND_RAISE     = 0.25;   // must exceed max trail raise (0.01 + 24×0.008 = 0.202)
+const LAYER_STEP    = 0.008;  // radial gap between successive overlap layers
+
+// 3D dot radii derived from 2D pixel sizes so they match visually
+const PX_TO_3D = (2 * Math.PI * CYL_RADIUS) / X_WORLD_RANGE;  // canvas px → world units
+const TRAIL_R  = DOT_RADIUS * PX_TO_3D;   // ≈ 0.090
+const IND_R    = CUR_RADIUS * PX_TO_3D;   // ≈ 0.198
+
+// ── Speed helpers (log-scale slider 1–100 → 1×–1000× real-time) ───────────
+function sliderToSpeed(v) { return Math.pow(1000, (v - 1) / 99) / SECS_PER_POINT; }
+function fmtMult(s) {
+    const x = s * SECS_PER_POINT;
+    return (x >= 10 ? Math.round(x) : x.toFixed(1)) + '×';
+}
+function fmtEta(s, rem) {
+    if (!rem || !s) return '';
+    const t = Math.round(rem / s);
+    return t < 60 ? `~${t}s` : t < 3600 ? `~${Math.round(t/60)}min` : `~${(t/3600).toFixed(1)}hr`;
 }
 
-function fmtMultiplier(ptsPerSec) {
-    const x = ptsPerSec * SECS_PER_POINT;
-    return x >= 10 ? `${Math.round(x)}×` : `${x.toFixed(1)}×`;
+// ── Shared state ───────────────────────────────────────────────────────────
+let coords = [], currentIdx = 0, animating = false;
+let speed = sliderToSpeed(67), ptsAccum = 0, lastTs = null;
+let cylMode = false;
+
+// ── Coordinate helpers ─────────────────────────────────────────────────────
+function normalize([rx, ry]) {
+    return [
+        (rx * 1.005 * COEFF / 25) + X_PADDING,
+        ((CANVAS_H * 5 - ry * 0.983 * COEFF) / 5) + Y_PADDING
+    ];
+}
+function parseSavBuffer(buf) {
+    const arr = new Uint8Array(buf);
+    const result = [];
+    for (let i = 0; i < arr.length; i += 4) {
+        if (arr[i] !== 0) {
+            let x = (arr[i+1] << 8) + arr[i];
+            if (x > 0x8000) x -= 0x8000;
+            result.push([x, (arr[i+3] << 8) + arr[i+2]]);
+        }
+    }
+    return result;
 }
 
-// ── Speed helpers (log scale: slider 1-100 → 1×-1000× real-time) ──────────
-const MIN_MULT = 1, MAX_MULT = 1000;
-function sliderToSpeed(v) {
-    const mult = MIN_MULT * Math.pow(MAX_MULT / MIN_MULT, (v - 1) / 99);
-    return mult / SECS_PER_POINT; // convert multiplier to pts/sec
-}
-
-// ── State ──────────────────────────────────────────────────────────────────
-let coords = [];
-let currentIdx = 0;
-let animating = false;
-let rafId = null;
-let speed = sliderToSpeed(67); // 100× real-time
-let ptsAccum = 0;              // fractional accumulator
-let lastTs = null;             // timestamp of previous frame
-let targetScrollY = null;      // desired scroll position for smooth follow
-
-// ── Canvas setup ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// 2-D rendering
+// ═══════════════════════════════════════════════════════════════════════════
 const pathCanvas      = document.getElementById('path-canvas');
 const darkeningCanvas = document.getElementById('darkening-canvas');
 const overlayCanvas   = document.getElementById('overlay-canvas');
@@ -348,7 +288,6 @@ const pCtx  = pathCanvas.getContext('2d');
 const dkCtx = darkeningCanvas.getContext('2d');
 const oCtx  = overlayCanvas.getContext('2d');
 
-// ── Background images ──────────────────────────────────────────────────────
 const bgImages = { base: null, markers: null };
 let showAnnotations = false;
 
@@ -356,9 +295,10 @@ function loadBg(key, src) {
     const img = new Image();
     img.onload = () => {
         bgImages[key] = img;
-        // Redraw background then re-stamp any already-drawn dots on top
-        clearCanvas();
-        if (coords.length > 0 && currentIdx > 0) batchDraw(0, currentIdx);
+        if (!cylMode) {
+            clearCanvas();
+            if (coords.length > 0 && currentIdx > 0) batchDraw(0, currentIdx);
+        }
     };
     img.src = src;
 }
@@ -384,20 +324,8 @@ function clearCanvas() {
     dkCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 }
 
-// ── Coordinate helpers ─────────────────────────────────────────────────────
-function normalize([rx, ry]) {
-    let x = (rx * 1.005 * COEFF / 25) + X_PADDING;
-    let y = ((CANVAS_H * 5 - ry * 0.983 * COEFF) / 5) + Y_PADDING;
-    return [x, y];
-}
-
-
-// ── Batch draw dots from startIdx to endIdx (exclusive) ────────────────────
 function batchDraw(startIdx, endIdx) {
     if (endIdx <= startIdx) return;
-
-    // Base dots on path canvas — source-over, idempotent at alpha=1 so
-    // overlapping dots look the same as single dots when layerStrength=0
     pCtx.fillStyle = `rgba(140, 14, 6, ${dotAlpha})`;
     for (let i = startIdx; i < endIdx; i++) {
         const [x, y] = normalize(coords[i]);
@@ -405,9 +333,6 @@ function batchDraw(startIdx, endIdx) {
         pCtx.arc(x, y, DOT_RADIUS, 0, Math.PI * 2);
         pCtx.fill();
     }
-
-    // Darkening on separate canvas — accumulates per visit, CSS-multiplied over path canvas.
-    // At layerStrength=0 nothing is drawn so there is truly no overlap effect.
     if (layerStrength > 0) {
         dkCtx.fillStyle = `rgba(0, 0, 0, ${layerStrength})`;
         for (let i = startIdx; i < endIdx; i++) {
@@ -419,7 +344,6 @@ function batchDraw(startIdx, endIdx) {
     }
 }
 
-// ── Position indicator on overlay canvas ───────────────────────────────────
 function drawDotAt(x, y) {
     oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     oCtx.fillStyle = `rgba(140, 14, 6, ${dotAlpha})`;
@@ -428,141 +352,405 @@ function drawDotAt(x, y) {
     oCtx.fill();
 }
 
-// Lerp the indicator between coords[currentIdx] and coords[currentIdx+1].
-// Skip interpolation on teleports (map wrap-around) so the dot doesn't
-// slide across the middle of the map.
-function drawIndicator() {
+function drawIndicator2D() {
     if (currentIdx <= 0 || currentIdx >= coords.length) return;
     const i1 = Math.min(currentIdx + 1, coords.length - 1);
     const [x0, y0] = normalize(coords[currentIdx]);
     const [x1, y1] = normalize(coords[i1]);
-    const isTeleport = Math.abs(x1 - x0) > 1000;
-    const t = isTeleport ? 0 : ptsAccum;
+    const t = Math.abs(x1 - x0) > 1000 ? 0 : ptsAccum;
     drawDotAt(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
 }
 
-// Used when paused / scrubbing — snap to exact coord
 function drawDot(idx) {
     if (idx <= 0 || idx >= coords.length) { oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H); return; }
     const [x, y] = normalize(coords[idx]);
     drawDotAt(x, y);
 }
 
-// ── Auto-scroll: update target, then lerp toward it each frame ────────────
-const SCROLL_LERP  = 0.08;
-const DEAD_ZONE    = 0.35; // dot can roam freely in the middle 35% of the viewport
-
-// Canvas coords → CSS pixels (canvas is CSS-scaled to window width)
-function displayScale() {
-    return pathCanvas.clientWidth / CANVAS_W;
-}
+// Auto-scroll
+const SCROLL_LERP = 0.08, DEAD_ZONE_2D = 0.35;
+let targetScrollY = null;
+function displayScale() { return pathCanvas.clientWidth / CANVAS_W; }
 
 function setScrollTarget(idx) {
-    if (!document.getElementById('autoScroll').checked) return;
-    if (idx <= 0) return;
-
-    const [, y]      = normalize(coords[idx]);
-    const dotCssY    = y * displayScale();          // dot in page-absolute CSS px
-    const viewH      = window.innerHeight;
-    const dotViewY   = dotCssY - window.scrollY;    // dot relative to viewport top
-
-    const zoneTop    = viewH * (0.5 - DEAD_ZONE / 2);
-    const zoneBottom = viewH * (0.5 + DEAD_ZONE / 2);
-
-    if (dotViewY < zoneTop) {
-        // dot above zone — scroll up until dot sits at zone top
-        targetScrollY = dotCssY - zoneTop;
-    } else if (dotViewY > zoneBottom) {
-        // dot below zone — scroll down until dot sits at zone bottom
-        targetScrollY = dotCssY - zoneBottom;
-    }
-    // within zone: leave targetScrollY unchanged
+    if (!document.getElementById('autoScroll').checked || idx <= 0) return;
+    const [, y] = normalize(coords[idx]);
+    const dotCssY  = y * displayScale();
+    const viewH    = window.innerHeight;
+    const dotViewY = dotCssY - window.scrollY;
+    const top      = viewH * (0.5 - DEAD_ZONE_2D / 2);
+    const bot      = viewH * (0.5 + DEAD_ZONE_2D / 2);
+    if      (dotViewY < top) targetScrollY = dotCssY - top;
+    else if (dotViewY > bot) targetScrollY = dotCssY - bot;
 }
 
 function smoothScroll() {
-    if (targetScrollY === null) return;
-    if (!document.getElementById('autoScroll').checked) return;
-    const next = window.scrollY + (targetScrollY - window.scrollY) * SCROLL_LERP;
-    window.scrollTo({ top: next, behavior: 'instant' });
+    if (targetScrollY === null || !document.getElementById('autoScroll').checked) return;
+    window.scrollTo({ top: window.scrollY + (targetScrollY - window.scrollY) * SCROLL_LERP, behavior: 'instant' });
 }
 
-// ── Animation loop ─────────────────────────────────────────────────────────
+// 2D animation loop
+let rafId = null;
 function animFrame(ts) {
     if (!animating) return;
-
     if (lastTs === null) lastTs = ts;
-    // Cap elapsed to 100ms so a tab-switch doesn't cause a huge jump
     const elapsed = Math.min(ts - lastTs, 100);
     lastTs = ts;
-
     ptsAccum += speed * elapsed / 1000;
     const ptsToDraw = Math.floor(ptsAccum);
     ptsAccum -= ptsToDraw;
-
     if (ptsToDraw > 0) {
         const end = Math.min(currentIdx + ptsToDraw, coords.length);
-        batchDraw(currentIdx, Math.min(end + 1, coords.length)); // +1 draws dot at arrival point
+        batchDraw(currentIdx, Math.min(end + 1, coords.length));
         currentIdx = end;
     }
-
     if (currentIdx >= coords.length) {
         oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
         animating = false;
         playPauseBtn.textContent = '▶ Play';
     } else {
-        drawIndicator();
+        drawIndicator2D();
         setScrollTarget(currentIdx);
         smoothScroll();
         rafId = requestAnimationFrame(animFrame);
     }
-
     updateUI();
 }
 
+// 2D drag-to-pan
+const viewer = document.getElementById('viewer');
+let dragging2d = false, dragStartX, dragStartY, scrollStartX, scrollStartY;
+viewer.addEventListener('mousedown', e => {
+    if (cylMode) return;
+    dragging2d = true; viewer.classList.add('dragging');
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    scrollStartX = window.scrollX; scrollStartY = window.scrollY;
+    e.preventDefault();
+});
+document.addEventListener('mouseup', () => { dragging2d = false; viewer.classList.remove('dragging'); });
+document.addEventListener('mousemove', e => {
+    if (!dragging2d || cylMode) return;
+    window.scrollTo({ left: scrollStartX - (e.clientX - dragStartX), top: scrollStartY - (e.clientY - dragStartY), behavior: 'auto' });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 3-D rendering (lazy-initialized on first cylinder toggle)
+// ═══════════════════════════════════════════════════════════════════════════
+let cyl = null;   // all Three.js state lives here after initCylinder()
+
+function canvasTo3D(cx, cy) {
+    const θ = ((cx - X_WORLD_MIN) / X_WORLD_RANGE) * Math.PI * 2;
+    const h = (0.5 - cy / CANVAS_H) * CYL_HEIGHT;
+    return [Math.sin(θ) * CYL_RADIUS, h, Math.cos(θ) * CYL_RADIUS];
+}
+function raisePoint(x, y, z, amount) {
+    const s = (CYL_RADIUS + amount) / CYL_RADIUS;
+    return [x * s, y, z * s];
+}
+
+function initCylinder() {
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0e0e16);
+    scene.fog = new THREE.Fog(0x0e0e16, CYL_RADIUS * 12, CYL_RADIUS * 20);
+
+    const CAM_FOV = 45;
+    const camera  = new THREE.PerspectiveCamera(CAM_FOV, innerWidth / innerHeight, 0.01, 500);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(devicePixelRatio);
+    renderer.setSize(innerWidth, innerHeight);
+    document.getElementById('view-3d').appendChild(renderer.domElement);
+
+    window.addEventListener('resize', () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+    });
+
+    // Map texture on cylinder
+    new THREE.TextureLoader().load('map-base.jpg', tex => {
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.offset.x = X_WORLD_MIN / CANVAS_W;
+        tex.repeat.x = X_WORLD_RANGE / CANVAS_W;
+        scene.add(new THREE.Mesh(
+            new THREE.CylinderGeometry(CYL_RADIUS, CYL_RADIUS, CYL_HEIGHT, 128, 1, true),
+            new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide })
+        ));
+    });
+
+    // Caps
+    [CYL_HEIGHT / 2, -CYL_HEIGHT / 2].forEach(y => {
+        const cap = new THREE.Mesh(
+            new THREE.CircleGeometry(CYL_RADIUS, 128),
+            new THREE.MeshBasicMaterial({ color: 0x0e0e16, side: THREE.DoubleSide })
+        );
+        cap.rotation.x = Math.PI / 2;
+        cap.position.y = y;
+        scene.add(cap);
+    });
+
+    // Camera follow state (closure variables shared by updateCamera + drag + setters)
+    let autoTheta = 0, camY = 0, targetCamY = 0, userThetaOff = 0, camDist = CYL_RADIUS * 5.5;
+    const DEAD_ZONE_3D = 0.35, LERP_THETA = 0.05, LERP_Y = 0.08;
+
+    function deadZoneH() { return camDist * Math.tan(CAM_FOV / 2 * Math.PI / 180) * DEAD_ZONE_3D; }
+
+    function updateCamera() {
+        if (!cyl || !cyl.indicator) return;
+        const autoFollow = document.getElementById('autoScroll').checked;
+        const dot = cyl.indicator.position;
+        if (autoFollow) {
+            let dθ = Math.atan2(dot.x, dot.z) - autoTheta;
+            while (dθ >  Math.PI) dθ -= 2 * Math.PI;
+            while (dθ < -Math.PI) dθ += 2 * Math.PI;
+            autoTheta += dθ * LERP_THETA;
+            const dz = deadZoneH();
+            if      (dot.y > camY + dz) targetCamY = dot.y - dz;
+            else if (dot.y < camY - dz) targetCamY = dot.y + dz;
+        }
+        camY += (targetCamY - camY) * LERP_Y;
+        const camTheta = autoTheta + userThetaOff;
+        camera.position.set(Math.sin(camTheta) * camDist, camY, Math.cos(camTheta) * camDist);
+        camera.lookAt(0, camY, 0);
+    }
+
+    // 3D drag (rotate + vertical pan) — disables auto-follow
+    let dragging3d = false, drag3dX0 = 0, drag3dY0 = 0, dragOff0 = 0, dragCamY0 = 0;
+    renderer.domElement.addEventListener('mousedown', e => {
+        dragging3d = true;
+        drag3dX0 = e.clientX; drag3dY0 = e.clientY;
+        dragOff0 = userThetaOff; dragCamY0 = targetCamY;
+        document.getElementById('autoScroll').checked = false;
+    });
+    document.addEventListener('mouseup',   () => dragging3d = false);
+    document.addEventListener('mousemove', e => {
+        if (!dragging3d || !cylMode) return;
+        userThetaOff = dragOff0 - (e.clientX - drag3dX0) * 0.006;
+        targetCamY   = Math.max(-CYL_HEIGHT / 2, Math.min(CYL_HEIGHT / 2,
+            dragCamY0 + (e.clientY - drag3dY0) * (CYL_HEIGHT / innerHeight) * 0.3));
+    });
+    renderer.domElement.addEventListener('wheel', e => {
+        camDist = Math.max(CYL_RADIUS * 3.5, Math.min(CYL_RADIUS * 9, camDist + e.deltaY * 0.02));
+        e.preventDefault();
+    }, { passive: false });
+
+    // Disc orientation helpers
+    const _up   = new THREE.Vector3(0, 1, 0);
+    const _quat = new THREE.Quaternion();
+    const _rad  = new THREE.Vector3();
+
+    cyl = {
+        scene, camera, renderer,
+        pos3D: null, dotMesh: null, indicator: null,
+        _up, _quat, _rad,
+        updateCamera,
+        // Expose camera state to outside code via closure setters
+        snapCamera(theta, y) { autoTheta = theta; camY = y; targetCamY = y; },
+    };
+}
+
+function buildPath3D() {
+    const { scene, _up, _quat, _rad } = cyl;
+    const n = coords.length;
+    const pos3D = new Float32Array(n * 3);
+
+    for (let i = 0; i < n; i++) {
+        const [cx, cy] = normalize(coords[i]);
+        const [x, y, z] = canvasTo3D(cx, cy);
+        pos3D[i*3] = x; pos3D[i*3+1] = y; pos3D[i*3+2] = z;
+    }
+    cyl.pos3D = pos3D;
+
+    if (cyl.dotMesh) { scene.remove(cyl.dotMesh); cyl.dotMesh = null; }
+
+    const sGeo = new THREE.CylinderGeometry(TRAIL_R, TRAIL_R, 0.004, 16);
+    const sMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const dotMesh = new THREE.InstancedMesh(sGeo, sMat, n);
+
+    const GRID_RES = 10, LAYER_STRENGTH = 0.03, MAX_OVERLAP = 25;
+    const base = new THREE.Color(0x9b1206);
+    const cellCounter = new Map();
+    const mtx = new THREE.Matrix4();
+
+    for (let i = 0; i < n; i++) {
+        const [cx, cy] = normalize(coords[i]);
+        const key = `${Math.round(cx / GRID_RES)},${Math.round(cy / GRID_RES)}`;
+        const cnt = Math.min((cellCounter.get(key) || 0) + 1, MAX_OVERLAP);
+        cellCounter.set(key, cnt);
+
+        const b = Math.pow(1 - LAYER_STRENGTH, cnt - 1);
+        dotMesh.setColorAt(i, new THREE.Color(base.r * b, base.g * b, base.b * b));
+
+        const raise = DOT_RAISE + (cnt - 1) * LAYER_STEP;
+        const [rx, ry, rz] = raisePoint(pos3D[i*3], pos3D[i*3+1], pos3D[i*3+2], raise);
+        _rad.set(pos3D[i*3], 0, pos3D[i*3+2]).normalize();
+        _quat.setFromUnitVectors(_up, _rad);
+        mtx.makeRotationFromQuaternion(_quat);
+        mtx.setPosition(rx, ry, rz);
+        dotMesh.setMatrixAt(i, mtx);
+    }
+    dotMesh.instanceMatrix.needsUpdate = true;
+    dotMesh.instanceColor.needsUpdate = true;
+    dotMesh.count = 0;
+    scene.add(dotMesh);
+    cyl.dotMesh = dotMesh;
+
+    if (cyl.indicator) { scene.remove(cyl.indicator); }
+    cyl.indicator = new THREE.Mesh(
+        new THREE.CylinderGeometry(IND_R, IND_R, 0.06, 20),
+        new THREE.MeshBasicMaterial({ color: 0x6c0d04 })   // slightly darker than trail base
+    );
+    scene.add(cyl.indicator);
+}
+
+function showDotsUpTo3D(idx) {
+    if (cyl && cyl.dotMesh) cyl.dotMesh.count = Math.min(idx + 1, coords.length);
+}
+
+function moveIndicator3D() {
+    if (!cyl || !cyl.indicator || !cyl.pos3D || currentIdx <= 0) return;
+    const { pos3D, _up, _quat, _rad } = cyl;
+    const i0 = Math.min(currentIdx,     coords.length - 1);
+    const i1 = Math.min(currentIdx + 1, coords.length - 1);
+    const [cx0] = normalize(coords[i0]);
+    const [cx1] = normalize(coords[i1]);
+    const t = Math.abs(cx1 - cx0) > 1000 ? 0 : ptsAccum;
+    const x = pos3D[i0*3]   + (pos3D[i1*3]   - pos3D[i0*3])   * t;
+    const y = pos3D[i0*3+1] + (pos3D[i1*3+1] - pos3D[i0*3+1]) * t;
+    const z = pos3D[i0*3+2] + (pos3D[i1*3+2] - pos3D[i0*3+2]) * t;
+    const [rx, ry, rz] = raisePoint(x, y, z, IND_RAISE);
+    cyl.indicator.position.set(rx, ry, rz);
+    _rad.set(x, 0, z).normalize();
+    cyl.indicator.quaternion.setFromUnitVectors(_up, _rad);
+}
+
+// 3D render loop — runs continuously whenever cylMode is active
+let cylRafRunning = false;
+function cyl3DLoop(ts) {
+    if (!cylMode) { cylRafRunning = false; return; }
+    requestAnimationFrame(cyl3DLoop);
+
+    if (animating) {
+        if (lastTs === null) lastTs = ts;
+        const dt = Math.min(ts - lastTs, 100);
+        lastTs = ts;
+        ptsAccum += speed * dt / 1000;
+        const n = Math.floor(ptsAccum);
+        ptsAccum -= n;
+        if (n > 0) {
+            currentIdx = Math.min(currentIdx + n, coords.length);
+            showDotsUpTo3D(currentIdx);
+        }
+        if (currentIdx >= coords.length) {
+            animating = false;
+            playPauseBtn.textContent = '▶ Play';
+        }
+        moveIndicator3D();
+        updateUI();
+    }
+
+    if (cyl) {
+        cyl.updateCamera();
+        cyl.renderer.render(cyl.scene, cyl.camera);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Mode switch
+// ═══════════════════════════════════════════════════════════════════════════
+function switchMode(to3D) {
+    const wasAnimating = animating;
+    pause();
+    cylMode = to3D;
+
+    document.getElementById('viewer').style.display         = to3D ? 'none'  : 'block';
+    document.getElementById('view-3d').style.display        = to3D ? 'block' : 'none';
+    document.getElementById('annotationsRow').style.display = to3D ? 'none' : '';
+    document.body.style.overflow = to3D ? 'hidden' : '';
+
+    if (to3D) {
+        if (!cyl) initCylinder();
+        if (coords.length > 0) {
+            buildPath3D();
+            showDotsUpTo3D(currentIdx);
+            moveIndicator3D();
+            if (cyl.indicator) {
+                const p = cyl.indicator.position;
+                cyl.snapCamera(Math.atan2(p.x, p.z), p.y);
+            }
+        }
+        if (!cylRafRunning) { cylRafRunning = true; requestAnimationFrame(cyl3DLoop); }
+    } else {
+        // Rebuild 2D from current state
+        clearCanvas();
+        batchDraw(0, currentIdx);
+        drawDot(currentIdx);
+        if (coords.length > 0) {
+            const [, y] = normalize(coords[Math.max(0, currentIdx - 1)]);
+            window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
+        }
+    }
+
+    updateUI();
+    if (wasAnimating) play();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Unified play / pause / replay / scrubTo
+// ═══════════════════════════════════════════════════════════════════════════
 function play() {
     if (currentIdx >= coords.length) currentIdx = 0;
-    animating = true;
-    ptsAccum = 0;
-    lastTs = null;
+    animating = true; ptsAccum = 0; lastTs = null;
     playPauseBtn.textContent = '⏸ Pause';
-    rafId = requestAnimationFrame(animFrame);
+    if (!cylMode) rafId = requestAnimationFrame(animFrame);
+    // 3D loop is already running when cylMode; it picks up animating=true on next tick
 }
 
 function pause() {
     animating = false;
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    lastTs = null;
     playPauseBtn.textContent = '▶ Play';
 }
 
 function replay() {
     pause();
-    clearCanvas();
-    oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     currentIdx = 0;
-    targetScrollY = null;
-    updateUI();
-    // Jump instantly to the starting point, then let smooth-scroll take over
-    if (coords.length > 0) {
-        const [, y] = normalize(coords[0]);
-        window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
+    if (!cylMode) {
+        clearCanvas();
+        oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        targetScrollY = null;
+        if (coords.length > 0) {
+            const [, y] = normalize(coords[0]);
+            window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
+        }
+    } else {
+        showDotsUpTo3D(0);
     }
+    updateUI();
     play();
 }
 
-// ── Scrub to arbitrary position ────────────────────────────────────────────
 function scrubTo(fraction) {
     pause();
     const target = Math.floor(fraction * coords.length);
-    clearCanvas();
-    oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-    currentIdx = 0;
-    batchDraw(0, target);
-    currentIdx = target;
-    drawDot(currentIdx);
+    if (!cylMode) {
+        clearCanvas();
+        oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        currentIdx = 0;
+        batchDraw(0, target);
+        currentIdx = target;
+        drawDot(currentIdx);
+    } else {
+        currentIdx = target;
+        showDotsUpTo3D(currentIdx);
+        moveIndicator3D();
+    }
     updateUI();
 }
 
-// ── UI sync ────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════════════════════════
 const playPauseBtn  = document.getElementById('playPauseBtn');
 const replayBtn     = document.getElementById('replayBtn');
 const progressRange = document.getElementById('progress-range');
@@ -573,63 +761,54 @@ function updateUI() {
     const n = coords.length;
     progressRange.value = n > 0 ? Math.round((currentIdx / n) * 10000) : 0;
     progressLabel.textContent = `${currentIdx.toLocaleString()} / ${n.toLocaleString()}`;
-    if (!animating) {
-        statusEl.textContent = n === 0 ? 'Load a .sav file to begin'
+    statusEl.textContent = !animating
+        ? (n === 0 ? 'Load a .sav file to begin'
             : currentIdx >= n ? 'Finished!'
             : currentIdx === 0 ? `${n.toLocaleString()} points loaded. Press Play!`
-            : 'Paused';
-    } else {
-        const eta = fmtEta(speed, n - currentIdx);
-        statusEl.textContent = `Playing... ${fmtMultiplier(speed)} real-time${eta ? ' · ' + eta + ' left' : ''}`;
-    }
+            : 'Paused')
+        : `Playing… ${fmtMult(speed)} real-time · ${fmtEta(speed, n - currentIdx)} left`;
 }
 
-// ── SAV parsing + load helper ──────────────────────────────────────────────
-function parseSavBuffer(buffer) {
-    const arr = new Uint8Array(buffer);
-    const result = [];
-    for (let i = 0; i < arr.length; i += 4) {
-        if (arr[i] !== 0) {
-            let x = (arr[i+1] << 8) + arr[i];
-            if (x > 0x8000) x -= 0x8000;
-            const y = (arr[i+3] << 8) + arr[i+2];
-            result.push([x, y]);
+// ═══════════════════════════════════════════════════════════════════════════
+// Load coords (handles both modes)
+// ═══════════════════════════════════════════════════════════════════════════
+function loadCoords(newCoords, startFromHalf = false) {
+    pause();
+    coords = newCoords;
+    const mid = startFromHalf ? Math.min(11600, coords.length - 1) : 0;
+    currentIdx = mid;
+
+    if (!cylMode) {
+        clearCanvas();
+        oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        if (mid > 0) batchDraw(0, mid);
+        if (coords.length > 0) {
+            const [, y] = normalize(coords[Math.max(0, mid)]);
+            window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
+        }
+    } else {
+        buildPath3D();
+        showDotsUpTo3D(mid);
+        moveIndicator3D();
+        if (cyl && cyl.indicator) {
+            const p = cyl.indicator.position;
+            cyl.snapCamera(Math.atan2(p.x, p.z), p.y);
         }
     }
-    return result;
-}
 
-function loadCoords(newCoords, startFromHalf = false) {
-    coords = newCoords;
-    animating = false;
-    clearCanvas();
-    oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     playPauseBtn.disabled = false;
-    replayBtn.disabled = false;
-
-    if (startFromHalf && coords.length > 0) {
-        const mid = Math.min(11600, coords.length - 1);
-        batchDraw(0, mid);          // draw trail up to start point instantly
-        currentIdx = mid;
-        const [, y] = normalize(coords[mid]);
-        window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
-    } else if (coords.length > 0) {
-        currentIdx = 0;
-        const [, y] = normalize(coords[0]);
-        window.scrollTo({ top: y * displayScale() - window.innerHeight / 2 });
-    }
-
+    replayBtn.disabled    = false;
+    progressRange.disabled = false;
     updateUI();
     play();
 }
 
-// Auto-load bundled save file, starting from the halfway point
+// ── Auto-load & file input ─────────────────────────────────────────────────
 fetch('path0_0.sav')
     .then(r => r.arrayBuffer())
     .then(buf => loadCoords(parseSavBuffer(buf), true))
     .catch(() => { statusEl.textContent = 'Load a .sav file to begin'; });
 
-// Manual file override
 document.getElementById('pathInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -640,29 +819,24 @@ document.getElementById('pathInput').addEventListener('change', function(e) {
 
 // ── Controls ───────────────────────────────────────────────────────────────
 playPauseBtn.addEventListener('click', () => animating ? pause() : play());
-
-replayBtn.addEventListener('click', () => { if (coords.length > 0) replay(); });
+replayBtn.addEventListener('click',    () => { if (coords.length) replay(); });
 
 document.getElementById('speed-range').addEventListener('input', function() {
-    speed = sliderToSpeed(parseInt(this.value));
-    document.getElementById('speedLabel').textContent =
-        `${fmtMultiplier(speed)} real-time`;
+    speed = sliderToSpeed(+this.value);
+    document.getElementById('speedLabel').textContent = fmtMult(speed) + ' real-time';
 });
-
-function liveRedraw() {
-    if (coords.length === 0) return;
-    const wasAnimating = animating;
-    pause();
-    clearCanvas();
-    oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-    batchDraw(0, currentIdx);
-    drawDot(currentIdx);
-    if (wasAnimating) play();
-}
 
 document.getElementById('annotationsToggle').addEventListener('change', function() {
     showAnnotations = this.checked;
-    liveRedraw();
+    if (!cylMode && coords.length > 0) {
+        const wasAnimating = animating;
+        pause();
+        clearCanvas();
+        oCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        batchDraw(0, currentIdx);
+        drawDot(currentIdx);
+        if (wasAnimating) play();
+    }
 });
 
 progressRange.addEventListener('mousedown', () => pause());
@@ -671,48 +845,26 @@ progressRange.addEventListener('input', function() {
     scrubTo(this.value / 10000);
 });
 
+document.getElementById('cylinderToggle').addEventListener('change', function() {
+    switchMode(this.checked);
+});
+
+// ── Modal ──────────────────────────────────────────────────────────────────
 function closeSavModal() {
     document.getElementById('sav-modal-overlay').classList.remove('show');
 }
-
 document.getElementById('loadSavBtn').addEventListener('click', () => {
     document.getElementById('sav-modal-overlay').classList.add('show');
 });
-
 document.getElementById('modalBrowseBtn').addEventListener('click', () => {
     closeSavModal();
     document.getElementById('pathInput').click();
 });
-
 document.getElementById('copyPathBtn').addEventListener('click', function() {
     navigator.clipboard.writeText('%USERPROFILE%\\AppData\\LocalLow\\DefaultCompany\\BabySteps');
     const orig = this.textContent;
     this.textContent = '✓ Copied!';
     setTimeout(() => this.textContent = orig, 1500);
-});
-
-// ── Drag-to-pan ────────────────────────────────────────────────────────────
-const viewer = document.getElementById('viewer');
-let dragging = false, dragStartX, dragStartY, scrollStartX, scrollStartY;
-
-viewer.addEventListener('mousedown', e => {
-    dragging = true;
-    viewer.classList.add('dragging');
-    dragStartX = e.clientX; dragStartY = e.clientY;
-    scrollStartX = window.scrollX; scrollStartY = window.scrollY;
-    e.preventDefault();
-});
-document.addEventListener('mouseup', () => {
-    dragging = false;
-    viewer.classList.remove('dragging');
-});
-document.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    window.scrollTo({
-        left: scrollStartX - (e.clientX - dragStartX),
-        top:  scrollStartY - (e.clientY - dragStartY),
-        behavior: 'auto'
-    });
 });
 </script>
 </body>

@@ -31,9 +31,37 @@
 
         .group { display: flex; flex-direction: column; gap: 3px; }
         .group label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.08em; }
-        input[type=range] { accent-color: #ff76c6; cursor: pointer; width: 100px; }
+        input[type=range] { accent-color: #ff76c6; cursor: pointer; }
+        #speed-range { width: 100px; }
+        #progress-range { flex: 1; height: 6px; }
+
+        #row-progress { display: flex; align-items: center; gap: 10px; width: 100%; }
 
         #status { font-size: 11px; color: #777; }
+
+        #sav-modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6); z-index: 200;
+            align-items: center; justify-content: center;
+        }
+        #sav-modal-overlay.show { display: flex; }
+        #sav-modal {
+            background: #1a1a2e; border: 1px solid #444; border-radius: 6px;
+            padding: 28px 32px; max-width: 480px; width: 90%;
+            color: #ddd; font-family: monospace;
+        }
+        #sav-modal h2 { color: #ff76c6; font-size: 16px; margin-bottom: 16px; }
+        #sav-modal ol { padding-left: 20px; line-height: 2; font-size: 13px; }
+        #sav-modal code { color: #aaa; background: #111; padding: 1px 5px; border-radius: 3px; }
+        .copy-path {
+            background: none; border: none; color: #ff76c6; font-size: 12px;
+            font-family: monospace; cursor: pointer; padding: 0;
+            text-decoration: underline dotted; display: inline;
+        }
+        .copy-path:hover { color: #ff9ad6; }
+        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background: #333; color: #aaa; }
+        .btn-cancel:hover { background: #444; color: #ccc; }
 
         #back-link, #repo-link {
             position: fixed; z-index: 101;
@@ -50,6 +78,12 @@
 <a id="repo-link" href="https://github.com/chopchump/babysteps_credits_map" target="_blank">source</a>
 
 <div id="controls">
+    <div class="group">
+        <label>Load your own path</label>
+        <button class="btn" id="loadSavBtn">Choose file…</button>
+        <input type="file" id="pathInput" accept=".sav" style="display:none">
+    </div>
+
     <button class="btn" id="playPauseBtn" disabled>▶ Play</button>
     <button class="btn" id="replayBtn"    disabled>↺ Replay</button>
 
@@ -59,6 +93,32 @@
     </div>
 
     <div id="status">Loading…</div>
+
+    <div id="row-progress">
+        <span style="font-size: 11px; color: #666; white-space:nowrap;">Progress</span>
+        <input type="range" id="progress-range" min="0" max="10000" value="0" step="1" disabled>
+        <span id="progress-label" style="font-size: 11px; color: #666; white-space:nowrap; min-width: 100px; text-align: right;">0 / 0</span>
+    </div>
+</div>
+
+<div id="sav-modal-overlay" onclick="closeSavModal()">
+    <div id="sav-modal" onclick="event.stopPropagation()">
+        <h2>Where to find your path file on PC</h2>
+        <ol>
+            <li>Open this folder:<br>
+                <button class="copy-path" id="copyPathBtn">📋 %USERPROFILE%\AppData\LocalLow\DefaultCompany\BabySteps</button>
+            </li>
+            <li>Open the numbered folder inside (your Steam ID)</li>
+            <li>Open the <code>save</code> folder</li>
+            <li>Pick file according to your save slot:<br>
+                <code>path0_0.sav</code> · <code>path1_0.sav</code> · <code>path2_0.sav</code>
+            </li>
+        </ol>
+        <div class="modal-btns">
+            <button class="btn" id="modalBrowseBtn">Browse for file</button>
+            <button class="btn btn-cancel" onclick="closeSavModal()">Cancel</button>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -70,10 +130,16 @@ const Y_PAD     = 180;
 const CANVAS_W  = 2048;
 const CANVAS_H  = 12288;
 
+// ── World x bounds (derived from coordinate constants) ────────────────────
+// raw_x wraps at 32768; canvas x = raw_x * 1.005 * COEFF/25 + X_PAD
+const WORLD_WRAP    = 32768;
+const X_WORLD_MIN   = X_PAD;                                    // canvas x at raw_x=0
+const X_WORLD_RANGE = WORLD_WRAP * 1.005 * COEFF / 25;          // world width in canvas px ≈ 1745
+
 // ── Cylinder dimensions ────────────────────────────────────────────────────
 const CYL_RADIUS = 5;
-// Height scaled so the map's natural proportions look right on the surface
-const CYL_HEIGHT = CYL_RADIUS * 2 * Math.PI * (CANVAS_H / CANVAS_W);
+// Height proportional to the actual world width (not the full padded canvas)
+const CYL_HEIGHT = CYL_RADIUS * 2 * Math.PI * (CANVAS_H / X_WORLD_RANGE);
 
 // ── Speed ──────────────────────────────────────────────────────────────────
 const SECS_PER_POINT = 5.3;
@@ -100,7 +166,7 @@ function normalize([rx, ry]) {
 
 // ── Canvas coords → 3-D point on cylinder surface ─────────────────────────
 function canvasTo3D(cx, cy) {
-    const θ = (cx / CANVAS_W) * Math.PI * 2;
+    const θ = ((cx - X_WORLD_MIN) / X_WORLD_RANGE) * Math.PI * 2;
     const h = (0.5 - cy / CANVAS_H) * CYL_HEIGHT;
     return [Math.sin(θ) * CYL_RADIUS, h, Math.cos(θ) * CYL_RADIUS];
 }
@@ -170,13 +236,17 @@ function updateCamera() {
 }
 
 // Drag to rotate (immediate — no lerp)
-let dragging = false, dragX0 = 0, dragOff0 = 0;
+let dragging = false, dragX0 = 0, dragY0 = 0, dragOff0 = 0, dragCamY0 = 0;
 renderer.domElement.addEventListener('mousedown', e => {
-    dragging = true; dragX0 = e.clientX; dragOff0 = userThetaOff;
+    dragging = true;
+    dragX0 = e.clientX; dragY0 = e.clientY;
+    dragOff0 = userThetaOff; dragCamY0 = targetCamY;
 });
 document.addEventListener('mouseup',   () => dragging = false);
 document.addEventListener('mousemove', e => {
-    if (dragging) userThetaOff = dragOff0 - (e.clientX - dragX0) * 0.006;
+    if (!dragging) return;
+    userThetaOff = dragOff0 - (e.clientX - dragX0) * 0.006;
+    targetCamY   = dragCamY0 + (e.clientY - dragY0) * (CYL_HEIGHT / innerHeight);
 });
 
 // Scroll to zoom
@@ -188,6 +258,9 @@ renderer.domElement.addEventListener('wheel', e => {
 
 // ── Cylinder map background ────────────────────────────────────────────────
 new THREE.TextureLoader().load('map-base.jpg', tex => {
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.offset.x = X_WORLD_MIN / CANVAS_W;
+    tex.repeat.x = X_WORLD_RANGE / CANVAS_W;
     const geo = new THREE.CylinderGeometry(CYL_RADIUS, CYL_RADIUS, CYL_HEIGHT, 128, 1, true);
     scene.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
         map: tex, side: THREE.FrontSide
@@ -205,14 +278,19 @@ new THREE.TextureLoader().load('map-base.jpg', tex => {
     scene.add(cap);
 });
 
-const DOT_RAISE = 0.12;   // world units above cylinder surface
-const IND_RAISE = 0.22;   // indicator raised a bit more so it sits above trail dots
+const DOT_RAISE = 0.01;   // base raise for first layer
+const IND_RAISE = 0.25;   // must exceed max trail raise (0.01 + 24×0.008 = 0.202)
 
 // Raise a surface point radially outward
 function raisePoint(x, y, z, amount) {
     const scale = (CYL_RADIUS + amount) / CYL_RADIUS;
     return [x * scale, y, z * scale];
 }
+
+// Reusable rotation helpers — orient each disc radially outward
+const _up   = new THREE.Vector3(0, 1, 0);
+const _quat = new THREE.Quaternion();
+const _rad  = new THREE.Vector3();
 
 // ── Path state ─────────────────────────────────────────────────────────────
 let coords    = [];
@@ -238,24 +316,49 @@ function buildPath() {
 
     if (dotMesh) scene.remove(dotMesh);
 
-    const sGeo = new THREE.SphereGeometry(0.2, 7, 5);
-    const sMat = new THREE.MeshBasicMaterial({ color: 0x9b1206 });
+    // White material — instance colors (set below) provide the actual colour
+    const sGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.004, 16);
+    const sMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     dotMesh = new THREE.InstancedMesh(sGeo, sMat, n);
-    dotMesh.count = 0;   // start invisible; animation reveals them
+    // NOTE: keep count=n here so setColorAt creates a correctly-sized buffer;
+    // set to 0 after the loop to hide all instances initially.
+
+    // Each overlapping visit gets its own layer, sitting just above the previous one.
+    // Disc height (0.004) < LAYER_STEP (0.008) → zero radial overlap, zero clipping.
+    const GRID_RES       = 10;
+    const LAYER_STRENGTH = 0.03;
+    const LAYER_STEP     = 0.008;  // radial gap between successive layers
+    const MAX_OVERLAP    = 25;
+    const base = new THREE.Color(0x9b1206);
+    const cellCounter = new Map();
 
     const mtx = new THREE.Matrix4();
     for (let i = 0; i < n; i++) {
-        const [rx, ry, rz] = raisePoint(pos3D[i*3], pos3D[i*3+1], pos3D[i*3+2], DOT_RAISE);
+        const [cx, cy] = normalize(coords[i]);
+        const key = `${Math.round(cx / GRID_RES)},${Math.round(cy / GRID_RES)}`;
+        const cnt = Math.min((cellCounter.get(key) || 0) + 1, MAX_OVERLAP);
+        cellCounter.set(key, cnt);
+
+        const b = Math.pow(1 - LAYER_STRENGTH, cnt - 1);
+        dotMesh.setColorAt(i, new THREE.Color(base.r * b, base.g * b, base.b * b));
+
+        const raise = DOT_RAISE + (cnt - 1) * LAYER_STEP;
+        const [rx, ry, rz] = raisePoint(pos3D[i*3], pos3D[i*3+1], pos3D[i*3+2], raise);
+        _rad.set(pos3D[i*3], 0, pos3D[i*3+2]).normalize();
+        _quat.setFromUnitVectors(_up, _rad);
+        mtx.makeRotationFromQuaternion(_quat);
         mtx.setPosition(rx, ry, rz);
         dotMesh.setMatrixAt(i, mtx);
     }
     dotMesh.instanceMatrix.needsUpdate = true;
+    dotMesh.instanceColor.needsUpdate = true;
+    dotMesh.count = 0;   // hide all initially; animation reveals them
     scene.add(dotMesh);
 
-    // Indicator — slightly larger sphere, raised a bit more
+    // Indicator — slightly larger disc, raised a bit more
     if (indicator) scene.remove(indicator);
     indicator = new THREE.Mesh(
-        new THREE.SphereGeometry(0.32, 16, 10),
+        new THREE.CylinderGeometry(0.32, 0.32, 0.06, 20),
         new THREE.MeshBasicMaterial({ color: 0x9b1206 })
     );
     scene.add(indicator);
@@ -278,6 +381,8 @@ function moveIndicator() {
     const z = pos3D[i0*3+2] + (pos3D[i1*3+2] - pos3D[i0*3+2]) * t;
     const [rx, ry, rz] = raisePoint(x, y, z, IND_RAISE);
     indicator.position.set(rx, ry, rz);
+    _rad.set(x, 0, z).normalize();
+    indicator.quaternion.setFromUnitVectors(_up, _rad);
 }
 
 // ── Unified render loop ────────────────────────────────────────────────────
@@ -330,12 +435,25 @@ function replay() {
     play();
 }
 
+// ── Scrub to arbitrary position ────────────────────────────────────────────
+function scrubTo(fraction) {
+    pause();
+    currentIdx = Math.floor(fraction * coords.length);
+    showDotsUpTo(currentIdx);
+    moveIndicator();
+    updateUI();
+}
+
 // ── UI ─────────────────────────────────────────────────────────────────────
-const playPauseBtn = document.getElementById('playPauseBtn');
-const statusEl     = document.getElementById('status');
+const playPauseBtn  = document.getElementById('playPauseBtn');
+const statusEl      = document.getElementById('status');
+const progressRange = document.getElementById('progress-range');
+const progressLabel = document.getElementById('progress-label');
 
 function updateUI() {
     const n = coords.length;
+    progressRange.value = n > 0 ? Math.round((currentIdx / n) * 10000) : 0;
+    progressLabel.textContent = `${currentIdx.toLocaleString()} / ${n.toLocaleString()}`;
     statusEl.textContent = !animating
         ? (n === 0 ? 'Loading…' : currentIdx >= n ? 'Finished!' : currentIdx === 0
             ? `${n.toLocaleString()} points. Press Play!` : 'Paused')
@@ -349,41 +467,79 @@ document.getElementById('speed-range').addEventListener('input', function() {
     speed = sliderToSpeed(+this.value);
     document.getElementById('speedLabel').textContent = fmtMult(speed) + ' real-time';
 });
+progressRange.addEventListener('mousedown', () => pause());
+progressRange.addEventListener('input', function() {
+    scrubTo(this.value / 10000);
+});
 
-// ── Load path0_0.sav ───────────────────────────────────────────────────────
+// ── Save file parsing & loading ────────────────────────────────────────────
+function parseSavBuffer(buf) {
+    const arr = new Uint8Array(buf);
+    const result = [];
+    for (let i = 0; i < arr.length; i += 4) {
+        if (arr[i] !== 0) {
+            let x = (arr[i+1] << 8) + arr[i];
+            if (x > 0x8000) x -= 0x8000;
+            result.push([x, (arr[i+3] << 8) + arr[i+2]]);
+        }
+    }
+    return result;
+}
+
+function loadNewCoords(newCoords, startFromHalf = false) {
+    coords = newCoords;
+    buildPath();
+
+    const mid = startFromHalf ? Math.min(11600, coords.length - 1) : 0;
+    currentIdx = mid;
+    showDotsUpTo(mid);
+    moveIndicator();
+
+    if (indicator) {
+        camY = indicator.position.y;
+        targetCamY = camY;
+        autoTheta = Math.atan2(indicator.position.x, indicator.position.z);
+        updateCamera();
+    }
+
+    playPauseBtn.disabled = false;
+    document.getElementById('replayBtn').disabled = false;
+    progressRange.disabled = false;
+    updateUI();
+    play();
+}
+
 fetch('path0_0.sav')
     .then(r => r.arrayBuffer())
-    .then(buf => {
-        const arr = new Uint8Array(buf);
-        for (let i = 0; i < arr.length; i += 4) {
-            if (arr[i] !== 0) {
-                let x = (arr[i+1] << 8) + arr[i];
-                if (x > 0x8000) x -= 0x8000;
-                coords.push([x, (arr[i+3] << 8) + arr[i+2]]);
-            }
-        }
-        buildPath();
-
-        // Pre-draw first 11600 points, play from there
-        const mid = Math.min(11600, coords.length - 1);
-        currentIdx = mid;
-        showDotsUpTo(mid);
-        moveIndicator();
-
-        // Initialise camera to face the starting dot
-        if (indicator) {
-            camY = indicator.position.y;
-            targetCamY = camY;
-            autoTheta = Math.atan2(indicator.position.x, indicator.position.z);
-            updateCamera();
-        }
-
-        playPauseBtn.disabled = false;
-        document.getElementById('replayBtn').disabled = false;
-        updateUI();
-        play();
-    })
+    .then(buf => loadNewCoords(parseSavBuffer(buf), true))
     .catch(() => { statusEl.textContent = 'Failed to load path file'; });
+
+// Manual file override
+document.getElementById('pathInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => loadNewCoords(parseSavBuffer(ev.target.result), false);
+    reader.readAsArrayBuffer(file);
+});
+
+// Modal
+function closeSavModal() {
+    document.getElementById('sav-modal-overlay').classList.remove('show');
+}
+document.getElementById('loadSavBtn').addEventListener('click', () => {
+    document.getElementById('sav-modal-overlay').classList.add('show');
+});
+document.getElementById('modalBrowseBtn').addEventListener('click', () => {
+    closeSavModal();
+    document.getElementById('pathInput').click();
+});
+document.getElementById('copyPathBtn').addEventListener('click', function() {
+    navigator.clipboard.writeText('%USERPROFILE%\\AppData\\LocalLow\\DefaultCompany\\BabySteps');
+    const orig = this.textContent;
+    this.textContent = '✓ Copied!';
+    setTimeout(() => this.textContent = orig, 1500);
+});
 </script>
 </body>
 </html>
